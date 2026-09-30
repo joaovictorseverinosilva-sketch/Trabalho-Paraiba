@@ -39,8 +39,12 @@ Para garantir alta disponibilidade, a arquitetura conta com um **Mecanismo de Fa
 
 ---
 ## HOSPEDAGEM
-
+http://localhost:8000/sistema/
 https://trabalho-paraiba-1.onrender.com
+
+## SENHAS
+admin@unirv.edu.br
+admin@unirv.edu.br
 
 ## ⚙️ Como Executar o Projeto Localmente
 
