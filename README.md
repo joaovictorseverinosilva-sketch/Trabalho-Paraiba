@@ -38,6 +38,9 @@ Para garantir alta disponibilidade, a arquitetura conta com um **Mecanismo de Fa
    *   **Código JSON:** Visualização crua para desenvolvedores validarem a estrutura dos dados retornados.
 
 ---
+## HOSPEDAGEM
+
+https://trabalho-paraiba-1.onrender.com
 
 ## ⚙️ Como Executar o Projeto Localmente
 
