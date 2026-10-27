@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotaVision - Extração Inteligente & Gestão Financeira N2</title>
+    <script>
+        (function() {
+            var token = localStorage.getItem('AUTH_TOKEN');
+            var path = window.location.pathname.toLowerCase();
+            var isAuthPage = path.endsWith('/login.html') || 
+                             path.endsWith('/register.html') || 
+                             path.endsWith('/login') || 
+                             path.endsWith('/register');
+            if (!token && !isAuthPage) {
+                window.location.replace('/login.html');
+            }
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/etapa2.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="/static/js/theme.js"></script>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand-group">
+                <div class="brand-badge">NotaVision</div>
+                <div class="brand-info">
+                    <span class="brand-title">NotaVision · Prática de Engenharia de Software</span>
+                    <span class="brand-subtitle">Avaliação N2 - Processamento Inteligente com LLM Gemini</span>
+                </div>
+            </div>
+
+            <!-- Navegação para os Módulos da 2ª Etapa e CRUDs -->
+            <nav class="nav-menu">
+                <a href="/sistema/" class="nav-link active"><i class="fa-solid fa-file-invoice"></i> Extração & Análise</a>
+                <a href="/pessoas/" class="nav-link"><i class="fa-solid fa-users"></i> Pessoas</a>
+                <a href="/classificacoes/" class="nav-link"><i class="fa-solid fa-tags"></i> Classificação</a>
+                <a href="/contas/" class="nav-link"><i class="fa-solid fa-receipt"></i> Contas</a>
+            </nav>
+
+            <div class="header-actions">
+                <div class="header-git-badge">
+                    <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer" class="git-badge-link" title="Ver commit da última atualização no GitHub">
+                        <i class="fa-brands fa-github"></i>
+                        <span class="git-badge-label">Git:</span>
+                        <span class="git-badge-hash" id="headerGitHash">{{ git_info.commit }}</span>
+                    </a>
+                </div>
+                <button type="button" class="btn-api-config" id="btnConfigModal" title="Configurar Chave da API Gemini">
+                    <i class="fa-solid fa-key"></i>
+                    <span id="apiStatusText">Configurar API</span>
+                    <span class="status-indicator" id="apiStatusDot"></span>
+                </button>
+                <button type="button" class="btn-theme-toggle" id="btnThemeToggle" title="Alternar Modo Noturno / Claro">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+                <button type="button" class="btn-logout" id="btnLogout" title="Sair do Sistema">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-container">
+            <!-- BANNER DE DESTAQUE: CÓDIGO DA ÚLTIMA ATUALIZAÇÃO NO GITHUB (AVALIAÇÃO N2) -->
+            <div class="github-sync-card" id="githubSyncCard">
+                <div class="sync-card-left">
+                    <div class="sync-icon-circle">
+                        <i class="fa-brands fa-github"></i>
+                    </div>
+                    <div class="sync-meta">
+                        <div class="sync-title-row">
+                            <span class="sync-title">CÓDIGO DA ÚLTIMA ATUALIZAÇÃO NO GITHUB</span>
+                            <span class="sync-live-tag"><span class="pulse-dot"></span> Sincronizado</span>
+                        </div>
+                        <div class="sync-hash-row">
+                            <span class="hash-label">Commit:</span>
+                            <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer" class="hash-badge" id="githubCommitBadge" title="Abrir commit no GitHub">
+                                <i class="fa-solid fa-code-commit"></i>
+                                <code id="gitCommitCode">{{ git_info.commit }}</code>
+                                <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i>
+                            </a>
+                            <span class="sync-date" id="gitCommitDate"><i class="fa-regular fa-clock"></i> {{ git_info.date }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sync-card-right">
+                    <a href="{{ git_info.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn-github-repo" title="Acessar repositório do projeto no GitHub">
+                        <i class="fa-brands fa-github"></i>
+                        <span>Repositório GitHub</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="hero-section">
+                <h1 class="page-title">Extração & Análise de Notas Fiscais (N2)</h1>
+                <p class="page-subtitle">Extraia dados da NF via IA e valide automaticamente Fornecedor, Faturado e Despesas no Banco de Dados</p>
+            </div>
+
+            <!-- 1ª ETAPA: Upload e Extração -->
+            <section class="card upload-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                        <span>1ª ETAPA: Upload do Arquivo PDF</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <label class="input-label" for="pdfInput">Selecione o arquivo PDF da nota fiscal</label>
+                    
+                    <div class="drop-zone" id="dropZone">
+                        <input type="file" id="pdfInput" accept=".pdf,application/pdf" class="file-input-hidden">
+                        <div class="drop-zone-prompt">
+                            <i class="fa-regular fa-file-pdf drop-icon"></i>
+                            <div class="drop-text">
+                                <span class="drop-title">Arraste seu arquivo PDF aqui ou</span>
+                                <button type="button" class="btn-browse" id="btnBrowse">Escolher arquivo</button>
+                            </div>
+                            <span class="drop-hint">Formatos aceitos: PDF (DANFE / NF-e / Contas a Pagar)</span>
+                        </div>
+                    </div>
+
+                    <div class="selected-file-card hidden" id="fileInfoCard">
+                        <div class="file-details">
+                            <div class="file-icon-wrapper">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </div>
+                            <div class="file-meta">
+                                <span class="file-name" id="fileNameDisplay">NFE.pdf</span>
+                                <span class="file-size" id="fileSizeDisplay">0.00 MB</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-remove-file" id="btnRemoveFile" title="Remover arquivo">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="sample-actions">
+                        <span class="sample-label">Ou teste com PDFs de exemplo:</span>
+                        <button type="button" class="btn-sample" id="btnSampleManutencao">
+                            <i class="fa-solid fa-wrench"></i> Exemplo do PDF: Peças & Máquinas (DANFE 000.084.682)
+                        </button>
+                        <button type="button" class="btn-sample" id="btnSampleInsumos">
+                            <i class="fa-solid fa-seedling"></i> Exemplo: Insumos Agrícolas (DANFE 000.054.121)
+                        </button>
+                    </div>
+
+                    <button type="button" class="btn-extract" id="btnExtract" disabled>
+                        <span class="btn-text">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> EXTRAIR DADOS DA NOTA
+                        </span>
+                        <span class="spinner hidden" id="btnSpinner">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> Processando com IA...
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- RESULTADOS DA 1ª ETAPA -->
+            <section class="card results-card hidden" id="resultsSection">
+                <div class="card-header results-header">
+                    <div class="card-title">
+                        <i class="fa-solid fa-file-lines"></i>
+                        <span>Dados Extraídos da Nota</span>
+                    </div>
+                    <div class="source-badge" id="extractionSourceBadge">
+                        <i class="fa-solid fa-bolt"></i> Extraído com IA
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="tabs-nav" role="tablist">
+                        <button type="button" class="tab-btn active" id="tabFormattedBtn" data-target="tabFormatted">
+                            <i class="fa-solid fa-table-cells-large"></i> Visualização Formatada
+                        </button>
+                        <button type="button" class="tab-btn" id="tabJsonBtn" data-target="tabJson">
+                            <i class="fa-solid fa-code"></i> JSON
+                        </button>
+                    </div>
+
+                    <div class="tab-content active" id="tabFormatted">
+                        <div class="classification-banner" id="classificationBanner">
+                            <div class="banner-icon">
+                                <i class="fa-solid fa-tag"></i>
+                            </div>
+                            <div class="banner-body">
+                                <span class="banner-label">Classificação da Despesa (Interpretado pelo Gemini)</span>
+                                <h2 class="banner-category" id="formattedCategoria">MANUTENÇÃO E OPERAÇÃO</h2>
+                                <div class="detected-tags-container">
+                                    <span class="tags-label">Termos detectados que embasaram a classificação:</span>
+                                    <div class="tags-list" id="formattedTermos">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <div class="info-card-header">
+                                    <i class="fa-solid fa-building"></i>
+                                    <h3>Fornecedor / Emitente</h3>
+                                </div>
+                                <div class="info-card-body">
+                                    <div class="field-item">
+                                        <span class="field-label">Razão Social:</span>
+                                        <span class="field-value highlight" id="formattedEmitente">-</span>
+                                    </div>
+                                    <div class="field-item">
+                                        <span class="field-label">Nome Fantasia:</span>
+                                        <span class="field-value" id="formattedFantasia">-</span>
+                                    </div>
+                                    <div class="field-item">
+                                        <span class="field-label">CNPJ:</span>
+                                        <span class="field-value mono" id="formattedCnpjEmitente">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <div class="info-card-header">
+                                    <i class="fa-solid fa-user-check"></i>
+                                    <h3>Faturado / Destinatário</h3>
+                                </div>
+                                <div class="info-card-body">
+                                    <div class="field-item">
+                                        <span class="field-label">Nome Completo:</span>
+                                        <span class="field-value highlight" id="formattedDestinatario">-</span>
+                                    </div>
+                                    <div class="field-item">
+                                        <span class="field-label">CPF / CNPJ:</span>
+                                        <span class="field-value mono" id="formattedCpfDestinatario">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <div class="info-card-header">
+                                    <i class="fa-solid fa-receipt"></i>
+                                    <h3>Dados da Nota Fiscal</h3>
+                                </div>
+                                <div class="info-card-body">
+                                    <div class="field-item">
+                                        <span class="field-label">Número da NF:</span>
+                                        <span class="field-value bold" id="formattedNumeroNf">-</span>
+                                    </div>
+                                    <div class="field-item">
+                                        <span class="field-label">Data de Emissão:</span>
+                                        <span class="field-value" id="formattedDataEmissao">-</span>
+                                    </div>
+                                    <div class="field-item">
+                                        <span class="field-label">Data de Vencimento:</span>
+                                        <span class="field-value" id="formattedDataVencimento">-</span>
+                                    </div>
+                                    <div class="field-item">
+                                        <span class="field-label">Valor Total:</span>
+                                        <span class="field-value valor-total" id="formattedValorTotal">-</span>
+                                    </div>
+                                    <div class="field-item">
+                                        <span class="field-label">Parcelas:</span>
+                                        <span class="field-value" id="formattedParcelas">1 parcela</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-card full-width">
+                                <div class="info-card-header">
+                                    <i class="fa-solid fa-boxes-stacked"></i>
+                                    <h3>Descrição dos Produtos / Serviços</h3>
+                                </div>
+                                <div class="info-card-body">
+                                    <p class="products-description" id="formattedDescricaoProdutos">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tabJson">
+                        <div class="json-tab-header">
+                            <div class="json-tab-title">
+                                <i class="fa-solid fa-code"></i> Dados em JSON
+                            </div>
+                            <div class="json-actions">
+                                <button type="button" class="btn-copy-json" id="btnCopyJson">
+                                    <i class="fa-regular fa-copy"></i> Copiar JSON
+                                </button>
+                                <button type="button" class="btn-download-json" id="btnDownloadJson">
+                                    <i class="fa-solid fa-download"></i> Baixar .JSON
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="code-container">
+                            <pre><code id="jsonCodeDisplay" class="json-code">// Carregue uma nota fiscal e clique em Extrair Dados para visualizar o JSON</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================================= -->
+            <!-- 2ª ETAPA: ANÁLISE NO BANCO DE DADOS E LANÇAMENTO AUTOMÁTICO               -->
+            <!-- ========================================================================= -->
+            <section class="etapa2-container hidden" id="etapa2Section">
+                <div class="etapa2-header">
+                    <div class="etapa2-title-group">
+                        <h3><i class="fa-solid fa-database"></i> 2ª ETAPA: Análise & Validação no Banco de Dados</h3>
+                        <p>Verificação de existência de Fornecedor, Faturado e Despesa conforme requisitos do projeto N2</p>
+                    </div>
+                    <button type="button" class="btn-api-config" id="btnReconsultarBanco" title="Reconsultar status no banco">
+                        <i class="fa-solid fa-arrows-rotate"></i> Reconsultar Banco
+                    </button>
+                </div>
+                <div class="etapa2-body">
+                    <!-- Cards de Verificação de Existência (Modelo Exato da Página 2) -->
+                    <div class="analysis-grid">
+                        <!-- FORNECEDOR -->
+                        <div class="analysis-card">
+                            <div class="analysis-card-title"><i class="fa-solid fa-building"></i> FORNECEDOR</div>
+                            <div class="analysis-entity-name" id="etapa2FornecedorNome">-</div>
+                            <div class="analysis-entity-doc" id="etapa2FornecedorDoc">CNPJ: -</div>
+                            <div id="etapa2FornecedorBadge" class="db-status-badge">CONSULTANDO...</div>
+                        </div>
+
+                        <!-- FATURADO -->
+                        <div class="analysis-card">
+                            <div class="analysis-card-title"><i class="fa-solid fa-user-check"></i> FATURADO</div>
+                            <div class="analysis-entity-name" id="etapa2FaturadoNome">-</div>
+                            <div class="analysis-entity-doc" id="etapa2FaturadoDoc">CPF: -</div>
+                            <div id="etapa2FaturadoBadge" class="db-status-badge">CONSULTANDO...</div>
+                        </div>
+
+                        <!-- DESPESA -->
+                        <div class="analysis-card">
+                            <div class="analysis-card-title"><i class="fa-solid fa-tag"></i> DESPESA</div>
+                            <div class="analysis-entity-name" id="etapa2DespesaNome">-</div>
+                            <div class="analysis-entity-doc" id="etapa2DespesaTipo">CLASSIFICAÇÃO: DESPESA</div>
+                            <div id="etapa2DespesaBadge" class="db-status-badge">CONSULTANDO...</div>
+                        </div>
+                    </div>
+
+                    <!-- Caixa de Ações pós-verificação -->
+                    <div class="etapa2-actions-box">
+                        <p class="etapa2-actions-desc">
+                            <strong>Ações Automáticas pós-verificação:</strong><br>
+                            1. Criar novo Fornecedor (se for o caso) &nbsp;|&nbsp;
+                            2. Criar novo Faturado (se for o caso) &nbsp;|&nbsp;
+                            3. Criar nova Despesa (se for o caso) &nbsp;|&nbsp;
+                            4. Criar o Movimento de Contas e sua Parcela única &nbsp;|&nbsp;
+                            5. Informar ao usuário que o registro foi lançado com sucesso.
+                        </p>
+                        <button type="button" class="btn-lancar-banco" id="btnLancarBanco">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span id="btnLancarText">LANÇAR REGISTRO NO BANCO DE DADOS (2ª ETAPA)</span>
+                        </button>
+                    </div>
+
+                    <!-- Card de Sucesso -->
+                    <div id="etapa2SuccessCard" class="success-launch-card hidden">
+                        <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="success-details">
+                            <h4>REGISTRO LANÇADO COM SUCESSO!</h4>
+                            <p id="successMessageText">O movimento de contas a pagar e sua parcela foram gravados no banco de dados.</p>
+                            <div class="success-tags" id="successTagsContainer">
+                                <!-- Tags dinâmicas -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <span>NotaVision © UniRV · Engenharia de Software (Avaliação N2)</span>
+            <span class="footer-divider">•</span>
+            <span>Código Última Atualização no GitHub: <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer"><strong>{{ git_info.commit }}</strong></a> ({{ git_info.date }})</span>
+            <span class="footer-divider">•</span>
+            <a href="{{ git_info.repo_url }}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> Repositório Oficial</a>
+        </div>
+    </footer>
+
+    <!-- Modal de API Gemini -->
+    <div class="modal-overlay hidden" id="apiModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-key"></i> Configuração da API Google Gemini</h3>
+                <button type="button" class="btn-close-modal" id="btnCloseModal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">
+                    Insira sua chave de API gratuita do Google Gemini para processamento em tempo real online. Se preferir não inserir agora, o sistema usará o modo de processamento inteligente heurístico local.
+                </p>
+                <div class="form-group">
+                    <label for="apiKeyInput">Gemini API Key:</label>
+                    <div class="input-with-icon">
+                        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="form-control">
+                        <button type="button" class="btn-toggle-visibility" id="btnToggleKey">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <small class="form-hint">
+                        Obtenha gratuitamente em <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>.
+                    </small>
+                </div>
+                <div class="api-notice" id="apiNoticeBox">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>A chave fica armazenada apenas no seu navegador durante o uso.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-cancel" id="btnCancelKey">Cancelar</button>
+                <button type="button" class="btn-modal-save" id="btnSaveKey">Salvar Chave</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

@@ -45,6 +45,13 @@
             </nav>
 
             <div class="header-actions">
+                <div class="header-git-badge">
+                    <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer" class="git-badge-link" title="Ver commit da última atualização no GitHub">
+                        <i class="fa-brands fa-github"></i>
+                        <span class="git-badge-label">Git:</span>
+                        <span class="git-badge-hash" id="headerGitHash">{{ git_info.commit }}</span>
+                    </a>
+                </div>
                 <button type="button" class="btn-api-config" id="btnConfigModal" title="Configurar Chave da API Gemini">
                     <i class="fa-solid fa-key"></i>
                     <span id="apiStatusText">Configurar API</span>
@@ -63,6 +70,36 @@
 
     <main class="main-content">
         <div class="page-container">
+            <!-- BANNER DE DESTAQUE: CÓDIGO DA ÚLTIMA ATUALIZAÇÃO NO GITHUB (AVALIAÇÃO N2) -->
+            <div class="github-sync-card" id="githubSyncCard">
+                <div class="sync-card-left">
+                    <div class="sync-icon-circle">
+                        <i class="fa-brands fa-github"></i>
+                    </div>
+                    <div class="sync-meta">
+                        <div class="sync-title-row">
+                            <span class="sync-title">CÓDIGO DA ÚLTIMA ATUALIZAÇÃO NO GITHUB</span>
+                            <span class="sync-live-tag"><span class="pulse-dot"></span> Sincronizado</span>
+                        </div>
+                        <div class="sync-hash-row">
+                            <span class="hash-label">Commit:</span>
+                            <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer" class="hash-badge" id="githubCommitBadge" title="Abrir commit no GitHub">
+                                <i class="fa-solid fa-code-commit"></i>
+                                <code id="gitCommitCode">{{ git_info.commit }}</code>
+                                <i class="fa-solid fa-arrow-up-right-from-square external-icon"></i>
+                            </a>
+                            <span class="sync-date" id="gitCommitDate"><i class="fa-regular fa-clock"></i> {{ git_info.date }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sync-card-right">
+                    <a href="{{ git_info.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn-github-repo" title="Acessar repositório do projeto no GitHub">
+                        <i class="fa-brands fa-github"></i>
+                        <span>Repositório GitHub</span>
+                    </a>
+                </div>
+            </div>
+
             <div class="hero-section">
                 <h1 class="page-title">Extração & Análise de Notas Fiscais (N2)</h1>
                 <p class="page-subtitle">Extraia dados da NF via IA e valide automaticamente Fornecedor, Faturado e Despesas no Banco de Dados</p>
@@ -339,6 +376,16 @@
             </section>
         </div>
     </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            <span>NotaVision © UniRV · Engenharia de Software (Avaliação N2)</span>
+            <span class="footer-divider">•</span>
+            <span>Código Última Atualização no GitHub: <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer"><strong>{{ git_info.commit }}</strong></a> ({{ git_info.date }})</span>
+            <span class="footer-divider">•</span>
+            <a href="{{ git_info.repo_url }}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> Repositório Oficial</a>
+        </div>
+    </footer>
 
     <!-- Modal de API Gemini -->
     <div class="modal-overlay hidden" id="apiModal">

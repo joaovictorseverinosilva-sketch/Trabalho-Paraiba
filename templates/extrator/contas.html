@@ -27,6 +27,22 @@
                 <a href="/classificacoes/" class="nav-link"><i class="fa-solid fa-tags"></i> Classificação</a>
                 <a href="/contas/" class="nav-link active"><i class="fa-solid fa-receipt"></i> Contas</a>
             </nav>
+            <div class="header-actions">
+                <div class="header-git-badge">
+                    <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer" class="git-badge-link" title="Ver commit no GitHub">
+                        <i class="fa-brands fa-github"></i>
+                        <span class="git-badge-label">Git:</span>
+                        <span class="git-badge-hash">{{ git_info.commit }}</span>
+                    </a>
+                </div>
+                <button type="button" class="btn-theme-toggle" id="btnThemeToggle" title="Alternar Modo Noturno / Claro">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+                <button type="button" class="btn-logout" id="btnLogout" title="Sair do Sistema">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -544,5 +560,14 @@
             }
         };
     </script>
+    <footer class="app-footer">
+        <div class="footer-container">
+            <span>NotaVision © UniRV · Engenharia de Software (Avaliação N2)</span>
+            <span class="footer-divider">•</span>
+            <span>Código Última Atualização no GitHub: <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer"><strong>{{ git_info.commit }}</strong></a> ({{ git_info.date }})</span>
+            <span class="footer-divider">•</span>
+            <a href="{{ git_info.repo_url }}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> Repositório Oficial</a>
+        </div>
+    </footer>
 </body>
 </html>

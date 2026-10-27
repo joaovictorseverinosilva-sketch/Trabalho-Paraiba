@@ -551,6 +551,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3500);
     }
 
+    // Sincronização dinâmica de informações do commit GitHub (N2)
+    fetch('/api/git-info/')
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.commit) {
+                const headerHash = document.getElementById('headerGitHash');
+                if (headerHash && (!headerHash.textContent || headerHash.textContent === 'None')) {
+                    headerHash.textContent = data.commit;
+                }
+                const commitCode = document.getElementById('gitCommitCode');
+                if (commitCode && (!commitCode.textContent || commitCode.textContent === 'None')) {
+                    commitCode.textContent = data.commit;
+                }
+                const commitDate = document.getElementById('gitCommitDate');
+                if (commitDate && (!commitDate.textContent || commitDate.textContent.includes('None'))) {
+                    commitDate.innerHTML = `<i class="fa-regular fa-clock"></i> ${data.date}`;
+                }
+            }
+        })
+        .catch(() => {});
+
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
         btnLogout.addEventListener('click', () => {

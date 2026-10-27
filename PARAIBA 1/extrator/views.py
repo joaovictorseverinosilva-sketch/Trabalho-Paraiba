@@ -52,6 +52,10 @@ def login_page(request):
 def api_status(request):
     return JsonResponse({'has_gemini_key': False})
 
+def git_info_api(request):
+    from .context_processors import get_git_commit_info
+    return JsonResponse(get_git_commit_info())
+
 @csrf_exempt
 def extrair_dados(request):
     if request.method == 'POST' and request.FILES.get('pdf_file'):

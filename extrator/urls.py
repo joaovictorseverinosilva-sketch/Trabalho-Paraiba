@@ -9,6 +9,7 @@ urlpatterns = [
     path('extrair/', views.extrair_dados, name='extrair_dados'),
     path('api/extract', views.extrair_dados, name='api_extract_v2'),
     path('api/status', views.api_status, name='api_status'),
+    path('api/git-info/', views.git_info_api, name='git_info_api'),
     path('api/auxiliares/', views.auxiliares_api, name='auxiliares_api'),
 
     # 2ª ETAPA - Análise e Lançamento Automático
