@@ -71,8 +71,7 @@ Atende 100% às recomendações de layout:
    ```
 
 5. **Acesso:**
-   Abra o navegador em: [http://127.0.0.1:8000/login.html](http://127.0.0.1:8000/login.html) ou [http://127.0.0.1:8000/sistema/](http://127.0.0.1:8000/sistema/)
-
+   Abra o navegador em: https://trabalho-paraiba-1.onrender.com
 ---
 
 ## 📂 Estrutura do Banco de Dados
