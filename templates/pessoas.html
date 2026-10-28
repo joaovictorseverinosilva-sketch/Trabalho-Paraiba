@@ -1,0 +1,408 @@
+{% extends "extrator/base.html" %}
+
+{% block title %}Manter Pessoas • NotaVision N2{% endblock %}
+{% block breadcrumb_section %}Atividades Acadêmicas{% endblock %}
+{% block breadcrumb_current %}Manter Pessoas{% endblock %}
+
+{% block content %}
+<div class="crud-page-container">
+    <!-- CABEÇALHO DO MÓDULO (ESPELHADO DO FARM-FIN) -->
+    <div class="page-title-section">
+        <div>
+            <h1 class="page-title">Manter Pessoas</h1>
+            <p class="page-description">Gerencie Fornecedores, Clientes e Faturados com exclusão lógica e reativação.</p>
+        </div>
+        <button type="button" class="clay-btn clay-btn-primary" id="btnNovo">
+            <i class="fa-solid fa-plus"></i> Inserir Nova Pessoa
+        </button>
+    </div>
+
+    <!-- TOOLBAR DE BUSCA E FILTROS (ESPELHADA DO FARM-FIN REGISTROSCRUD) -->
+    <div class="clay-card" style="padding: var(--space-4); margin-bottom: var(--space-6);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 280px;">
+                <div class="clay-input-icon-wrap" style="flex: 1;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" class="clay-input" placeholder="Buscar por razão social, nome, CPF/CNPJ ou tipo..." autocomplete="off">
+                </div>
+                <button type="button" class="clay-btn clay-btn-primary" id="btnBuscar">
+                    <i class="fa-solid fa-magnifying-glass"></i> Buscar
+                </button>
+                <button type="button" class="clay-btn clay-btn-secondary" id="btnTodos" title="Carrega todos os registros com status ATIVO">
+                    <i class="fa-solid fa-list-check"></i> TODOS
+                </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="clay-label" style="margin: 0; white-space: nowrap;">Filtrar Tipo:</label>
+                    <select id="filtroTipo" class="clay-select" style="width: auto; padding: 8px 12px;">
+                        <option value="">Todos os Tipos</option>
+                        <option value="FORNECEDOR">Fornecedor</option>
+                        <option value="CLIENTE">Cliente</option>
+                        <option value="FATURADO">Faturado</option>
+                        <option value="CLIENTE-FORNECEDOR">Cliente-Fornecedor</option>
+                    </select>
+                </div>
+
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="checkInativos" style="accent-color: var(--color-primary-600); width: 16px; height: 16px;">
+                    <span>Incluir Inativos</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELA COM INDEXAÇÃO POR COLUNA (INICIALMENTE VAZIA) -->
+    <div class="table-card">
+        <table class="styled-table" id="tabelaPessoas">
+            <thead>
+                <tr>
+                    <th data-sort="id" style="width: 75px;">ID <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="razao_social">Razão Social / Nome <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="tipo" style="width: 170px;">Tipo <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="cpf_cnpj" style="width: 180px;">CPF / CNPJ <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="status" style="width: 110px;">Status <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th style="width: 150px; text-align: center;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaCorpo">
+                <tr>
+                    <td colspan="6" class="table-empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <p>Tabela de registros inicialmente vazia.</p>
+                        <small>Utilize a barra de pesquisa ou clique em <strong>TODOS</strong> para carregar os registros com status <strong>ATIVO</strong> conforme os requisitos acadêmicos.</small>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL FORMULÁRIO (CREATE / UPDATE - STATUS OCULTO CONFORME REGRA #7) -->
+<div class="crud-modal-overlay hidden" id="modalPessoa">
+    <div class="crud-modal-card">
+        <div class="crud-modal-header">
+            <div class="crud-modal-title" id="modalTitulo">Inserir Nova Pessoa</div>
+            <button type="button" class="crud-modal-close" id="btnModalClose">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form id="formPessoa">
+            <div class="crud-modal-body">
+                <input type="hidden" id="pessoaId">
+                <input type="hidden" id="pessoaStatus" value="ATIVO">
+
+                <div class="clay-input-group">
+                    <label class="clay-label">Tipo de Cadastro <span class="required-star">*</span></label>
+                    <select id="pessoaTipo" class="clay-select" required>
+                        <option value="FORNECEDOR">Fornecedor</option>
+                        <option value="CLIENTE">Cliente</option>
+                        <option value="FATURADO">Faturado</option>
+                        <option value="CLIENTE-FORNECEDOR">Cliente-Fornecedor</option>
+                    </select>
+                </div>
+
+                <div class="clay-input-group">
+                    <label class="clay-label">Razão Social / Nome Completo <span class="required-star">*</span></label>
+                    <input type="text" id="pessoaRazao" class="clay-input" placeholder="Ex.: Iguaçu Máquinas Agrícolas Ltda" required>
+                </div>
+
+                <div class="clay-input-group">
+                    <label class="clay-label">Nome Fantasia (Opcional)</label>
+                    <input type="text" id="pessoaFantasia" class="clay-input" placeholder="Ex.: Iguaçu Máquinas">
+                </div>
+
+                <div class="clay-input-group">
+                    <label class="clay-label">CPF ou CNPJ <span class="required-star">*</span></label>
+                    <input type="text" id="pessoaDoc" class="clay-input" placeholder="00.000.000/0000-00 ou 000.000.000-00" required>
+                </div>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="clay-btn clay-btn-outline" id="btnModalCancelar">Cancelar</button>
+                <button type="submit" class="clay-btn clay-btn-primary" id="btnModalSalvar">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Cadastro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let dadosAtuais = [];
+    let ordenacaoAtual = { coluna: 'razao_social', direcao: 'asc' };
+
+    const searchInput = document.getElementById('searchInput');
+    const filtroTipo = document.getElementById('filtroTipo');
+    const checkInativos = document.getElementById('checkInativos');
+    const btnBuscar = document.getElementById('btnBuscar');
+    const btnTodos = document.getElementById('btnTodos');
+    const tabelaCorpo = document.getElementById('tabelaCorpo');
+
+    const modal = document.getElementById('modalPessoa');
+    const modalTitulo = document.getElementById('modalTitulo');
+    const btnNovo = document.getElementById('btnNovo');
+    const btnModalClose = document.getElementById('btnModalClose');
+    const btnModalCancelar = document.getElementById('btnModalCancelar');
+    const formPessoa = document.getElementById('formPessoa');
+
+    // Inicializa ordenação nas colunas
+    window.initTableSort(document.getElementById('tabelaPessoas'), (coluna, direcao) => {
+        ordenacaoAtual = { coluna, direcao };
+        ordenarERenderizar();
+    });
+
+    // Buscar
+    btnBuscar.addEventListener('click', () => carregarDados(false));
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') carregarDados(false);
+    });
+
+    // TODOS: Carrega apenas ATIVOS (Regra #4)
+    btnTodos.addEventListener('click', () => {
+        searchInput.value = '';
+        checkInativos.checked = false;
+        filtroTipo.value = '';
+        carregarDados(true);
+    });
+
+    filtroTipo.addEventListener('change', () => ordenarERenderizar());
+    checkInativos.addEventListener('change', () => carregarDados(false));
+
+    async function carregarDados(forcarTodosAtivos = false) {
+        const termo = searchInput.value.trim();
+        const tipo = filtroTipo.value;
+        const incluirInativos = forcarTodosAtivos ? false : checkInativos.checked;
+
+        tabelaCorpo.innerHTML = `
+            <tr>
+                <td colspan="6" class="table-empty-state">
+                    <i class="fa-solid fa-spinner fa-spin" style="color: var(--color-primary-600);"></i>
+                    <p>Consultando registros...</p>
+                </td>
+            </tr>
+        `;
+
+        try {
+            const params = new URLSearchParams({
+                busca: termo,
+                tipo: tipo,
+                incluir_inativos: incluirInativos ? 'true' : 'false',
+                modo_todos: forcarTodosAtivos ? 'true' : 'false'
+            });
+
+            const resp = await fetch(`/api/pessoas/list/?${params}`);
+            const res = await resp.json();
+
+            if (res.sucesso) {
+                dadosAtuais = res.data || [];
+                ordenarERenderizar();
+                window.showToast('info', 'Registros', `${dadosAtuais.length} registros carregados.`);
+            } else {
+                tabelaCorpo.innerHTML = `<tr><td colspan="6" class="table-empty-state"><p>${res.erro || 'Falha ao buscar.'}</p></td></tr>`;
+            }
+        } catch (err) {
+            tabelaCorpo.innerHTML = `<tr><td colspan="6" class="table-empty-state"><p>Erro ao conectar com o servidor.</p></td></tr>`;
+        }
+    }
+
+    function ordenarERenderizar() {
+        if (!dadosAtuais || dadosAtuais.length === 0) {
+            tabelaCorpo.innerHTML = `
+                <tr>
+                    <td colspan="6" class="table-empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <p>Nenhum registro encontrado.</p>
+                        <small>Ajuste os filtros de pesquisa ou clique em TODOS para carregar os registros ativos.</small>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let filtrados = [...dadosAtuais];
+        if (filtroTipo.value) {
+            filtrados = filtrados.filter(item => item.tipo === filtroTipo.value);
+        }
+
+        // Ordenação
+        const { coluna, direcao } = ordenacaoAtual;
+        filtrados.sort((a, b) => {
+            let valA = a[coluna] || '';
+            let valB = b[coluna] || '';
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+            if (valA < valB) return direcao === 'asc' ? -1 : 1;
+            if (valA > valB) return direcao === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        tabelaCorpo.innerHTML = '';
+        filtrados.forEach(row => {
+            const tr = document.createElement('tr');
+            const isAtivo = row.status === 'ATIVO';
+
+            tr.innerHTML = `
+                <td><code style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted);">#${row.id}</code></td>
+                <td>
+                    <div style="font-weight: 700; color: var(--text-primary);">${row.razao_social}</div>
+                    ${row.nome_fantasia ? `<small style="color: var(--text-muted);">${row.nome_fantasia}</small>` : ''}
+                </td>
+                <td><span class="badge badge--neutral">${row.tipo_display || row.tipo}</span></td>
+                <td><code style="font-family: var(--font-mono);">${row.cpf_cnpj}</code></td>
+                <td>
+                    <span class="badge ${isAtivo ? 'badge--success' : 'badge--danger'}">
+                        <i class="fa-solid ${isAtivo ? 'fa-check' : 'fa-ban'}"></i> ${row.status}
+                    </span>
+                </td>
+                <td style="text-align: center;">
+                    <div style="display: inline-flex; gap: 6px;">
+                        <button type="button" class="btn-icon-action btn-editar" data-id="${row.id}" title="Editar">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                        ${isAtivo ? `
+                            <button type="button" class="btn-icon-action btn-inativar" data-id="${row.id}" title="Inativar (Exclusão Lógica)" style="color: var(--color-danger);">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : `
+                            <button type="button" class="btn-icon-action btn-reativar" data-id="${row.id}" title="Reativar Cadastro" style="color: var(--color-success);">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        `}
+                    </div>
+                </td>
+            `;
+            tabelaCorpo.appendChild(tr);
+        });
+
+        // Ações de cada linha
+        document.querySelectorAll('.btn-editar').forEach(btn => {
+            btn.addEventListener('click', () => abrirEdicao(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.btn-inativar').forEach(btn => {
+            btn.addEventListener('click', () => inativarRegistro(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.btn-reativar').forEach(btn => {
+            btn.addEventListener('click', () => reativarRegistro(btn.getAttribute('data-id')));
+        });
+    }
+
+    // Modal Create / Edit
+    btnNovo.addEventListener('click', () => {
+        formPessoa.reset();
+        document.getElementById('pessoaId').value = '';
+        document.getElementById('pessoaStatus').value = 'ATIVO';
+        modalTitulo.textContent = 'Inserir Nova Pessoa';
+        modal.classList.remove('hidden');
+    });
+
+    const fecharModal = () => modal.classList.add('hidden');
+    btnModalClose.addEventListener('click', fecharModal);
+    btnModalCancelar.addEventListener('click', fecharModal);
+
+    function abrirEdicao(id) {
+        const item = dadosAtuais.find(d => String(d.id) === String(id));
+        if (!item) return;
+
+        document.getElementById('pessoaId').value = item.id;
+        document.getElementById('pessoaStatus').value = item.status;
+        document.getElementById('pessoaTipo').value = item.tipo;
+        document.getElementById('pessoaRazao').value = item.razao_social;
+        document.getElementById('pessoaFantasia').value = item.nome_fantasia || '';
+        document.getElementById('pessoaDoc').value = item.cpf_cnpj;
+
+        modalTitulo.textContent = `Editar Pessoa #${item.id}`;
+        modal.classList.remove('hidden');
+    }
+
+    formPessoa.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            id: document.getElementById('pessoaId').value || null,
+            tipo: document.getElementById('pessoaTipo').value,
+            razao_social: document.getElementById('pessoaRazao').value.trim(),
+            nome_fantasia: document.getElementById('pessoaFantasia').value.trim(),
+            cpf_cnpj: document.getElementById('pessoaDoc').value.trim(),
+            status: document.getElementById('pessoaStatus').value || 'ATIVO'
+        };
+
+        const btnSalvar = document.getElementById('btnModalSalvar');
+        btnSalvar.disabled = true;
+
+        try {
+            const resp = await fetch('/api/pessoas/save/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const res = await resp.json();
+            btnSalvar.disabled = false;
+
+            if (res.sucesso) {
+                window.showToast('success', 'Salvo!', res.mensagem || 'Cadastro salvo com sucesso.');
+                fecharModal();
+                carregarDados(false);
+            } else {
+                window.showToast('error', 'Falha ao Salvar', res.erro || 'Erro ao processar.');
+            }
+        } catch (err) {
+            btnSalvar.disabled = false;
+            window.showToast('error', 'Erro', 'Falha de comunicação com o servidor.');
+        }
+    });
+
+    // Inativação (Exclusão Lógica)
+    function inativarRegistro(id) {
+        window.confirmDialog({
+            title: 'Inativar Pessoa',
+            message: 'O cadastro nunca é excluído fisicamente do banco de dados (exclusão lógica). Seu status será alterado para INATIVO. Deseja continuar?',
+            confirmText: 'Inativar',
+            isDanger: true,
+            onConfirm: async () => {
+                try {
+                    const resp = await fetch(`/api/pessoas/delete/${id}/`, { method: 'POST' });
+                    const res = await resp.json();
+                    if (res.sucesso) {
+                        window.showToast('success', 'Inativado', res.mensagem || 'Registro inativado com sucesso.');
+                        carregarDados(false);
+                    } else {
+                        window.showToast('error', 'Erro', res.erro || 'Não foi possível inativar.');
+                    }
+                } catch {
+                    window.showToast('error', 'Erro', 'Falha na conexão.');
+                }
+            }
+        });
+    }
+
+    // Reativação
+    function reativarRegistro(id) {
+        window.confirmDialog({
+            title: 'Reativar Pessoa',
+            message: 'Deseja reativar este cadastro, alterando seu status para ATIVO novamente?',
+            confirmText: 'Reativar',
+            isDanger: false,
+            onConfirm: async () => {
+                try {
+                    const resp = await fetch(`/api/pessoas/reativar/${id}/`, { method: 'POST' });
+                    const res = await resp.json();
+                    if (res.sucesso) {
+                        window.showToast('success', 'Reativado', res.mensagem || 'Registro reativado com sucesso.');
+                        carregarDados(false);
+                    } else {
+                        window.showToast('error', 'Erro', res.erro || 'Não foi possível reativar.');
+                    }
+                } catch {
+                    window.showToast('error', 'Erro', 'Falha na conexão.');
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,548 +1,687 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Contas - NotaVision N2</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/etapa2.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body>
-    <header class="app-header">
-        <div class="header-container">
-            <div class="brand-group">
-                <div class="brand-badge">NotaVision</div>
-                <div class="brand-info">
-                    <span class="brand-title">NotaVision · Prática de Engenharia de Software</span>
-                    <span class="brand-subtitle">Avaliação N2 - Sistema Administrativo-Financeiro</span>
-                </div>
-            </div>
-            <nav class="nav-menu">
-                <a href="/sistema/" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Extração & Análise</a>
-                <a href="/pessoas/" class="nav-link"><i class="fa-solid fa-users"></i> Pessoas</a>
-                <a href="/classificacoes/" class="nav-link"><i class="fa-solid fa-tags"></i> Classificação</a>
-                <a href="/contas/" class="nav-link active"><i class="fa-solid fa-receipt"></i> Contas</a>
-            </nav>
+{% extends "extrator/base.html" %}
+
+{% block title %}Registrar Contas • NotaVision N2{% endblock %}
+{% block breadcrumb_section %}Atividades Acadêmicas{% endblock %}
+{% block breadcrumb_current %}Registrar Contas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .parcelas-subtable {
+        width: 100%;
+        margin-top: 10px;
+        background: var(--bg-surface-2);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        font-size: 12.5px;
+    }
+    .parcelas-subtable th {
+        padding: 8px 10px;
+        font-size: 11px;
+    }
+    .parcelas-subtable td {
+        padding: 8px 10px;
+    }
+    .classificacao-badge-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .multi-select-box {
+        max-height: 140px;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 8px 12px;
+        background: var(--bg-surface);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .multi-select-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="crud-page-container">
+    <!-- CABEÇALHO DO MÓDULO (ESPELHADO DO FARM-FIN) -->
+    <div class="page-title-section">
+        <div>
+            <h1 class="page-title">Registrar Contas a Pagar & Receber</h1>
+            <p class="page-description">Movimento financeiro completo com múltiplas classificações e parcelamentos com vencimentos distintos.</p>
         </div>
-    </header>
+        <button type="button" class="clay-btn clay-btn-primary" id="btnNovo">
+            <i class="fa-solid fa-plus"></i> Novo Lançamento de Conta
+        </button>
+    </div>
 
-    <main class="main-content">
-        <div class="crud-page-container">
-            <div class="crud-header-section">
-                <div>
-                    <h1 class="crud-title">Registrar Contas a Pagar & Receber</h1>
-                    <p class="crud-subtitle">Movimento de Contas, Múltiplas Classificações e Parcelas com Vencimentos Distintos</p>
-                </div>
-                <button type="button" class="btn-new-record" id="btnNovo">
-                    <i class="fa-solid fa-plus"></i> Novo Lançamento de Conta
-                </button>
-            </div>
-
-            <div class="search-toolbar">
-                <div class="search-input-group">
+    <!-- TOOLBAR DE BUSCA E FILTROS -->
+    <div class="clay-card" style="padding: var(--space-4); margin-bottom: var(--space-6);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 280px;">
+                <div class="clay-input-icon-wrap" style="flex: 1;">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar por número do doc, fornecedor, faturado, classificação ou valor..." autocomplete="off">
+                    <input type="text" id="searchInput" class="clay-input" placeholder="Buscar por número da NF, pessoa, faturado ou classificação..." autocomplete="off">
                 </div>
-                <button type="button" class="btn-search" id="btnBuscar">
+                <button type="button" class="clay-btn clay-btn-primary" id="btnBuscar">
                     <i class="fa-solid fa-magnifying-glass"></i> Buscar
                 </button>
-                <button type="button" class="btn-todos" id="btnTodos" title="Carrega todos os registros com status ATIVO">
+                <button type="button" class="clay-btn clay-btn-secondary" id="btnTodos" title="Carrega todos os registros com status ATIVO">
                     <i class="fa-solid fa-list-check"></i> TODOS
                 </button>
             </div>
 
-            <div class="table-card">
-                <table class="styled-table" id="tabelaContas">
-                    <thead>
-                        <tr>
-                            <th data-sort="id" style="width: 60px;">ID <i class="fa-solid fa-sort sort-icon"></i></th>
-                            <th data-sort="tipo" style="width: 100px;">Tipo <i class="fa-solid fa-sort sort-icon"></i></th>
-                            <th data-sort="numero_documento">Nº Doc / NF <i class="fa-solid fa-sort sort-icon"></i></th>
-                            <th>Fornecedor / Cliente</th>
-                            <th>Classificações</th>
-                            <th data-sort="valor_total" style="width: 130px;">Valor Total <i class="fa-solid fa-sort sort-icon"></i></th>
-                            <th style="width: 130px;">Parcelas</th>
-                            <th data-sort="status" style="width: 90px;">Status <i class="fa-solid fa-sort sort-icon"></i></th>
-                            <th style="width: 150px; text-align: center;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabelaCorpo">
-                        <tr>
-                            <td colspan="9" class="table-empty-state">
-                                <i class="fa-regular fa-folder-open"></i>
-                                <p>Tabela de registros vazia.</p>
-                                <small>Utilize a barra de pesquisa ou clique em <strong>TODOS</strong> para carregar os registros com status <strong>ATIVO</strong>.</small>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
-    <!-- Modal Form (Create / Edit) -->
-    <div class="crud-modal-overlay hidden" id="modalConta">
-        <div class="crud-modal-card" style="max-width: 780px;">
-            <div class="crud-modal-header">
-                <h3 id="modalTitulo"><i class="fa-solid fa-file-invoice-dollar"></i> Lançar Conta</h3>
-                <button type="button" class="btn-close-modal" id="btnFecharModal"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <form id="formConta">
-                <div class="crud-modal-body" style="max-height: 75vh; overflow-y: auto;">
-                    <input type="hidden" id="contaId" name="id">
-                    <input type="hidden" id="contaStatus" name="status" value="ATIVO">
-
-                    <div class="form-grid-2">
-                        <div class="form-field-group">
-                            <label for="tipoConta">Tipo de Conta *</label>
-                            <select id="tipoConta" required>
-                                <option value="APAGAR">Contas a Pagar</option>
-                                <option value="RECEBER">Contas a Receber</option>
-                            </select>
-                        </div>
-
-                        <div class="form-field-group">
-                            <label for="numeroDocumento">Número do Documento / NF *</label>
-                            <input type="text" id="numeroDocumento" required placeholder="Ex.: 000084682">
-                        </div>
-
-                        <div class="form-field-group">
-                            <label for="selectPessoa">Fornecedor / Cliente *</label>
-                            <select id="selectPessoa" required>
-                                <option value="">Selecione...</option>
-                            </select>
-                        </div>
-
-                        <div class="form-field-group">
-                            <label for="selectFaturado">Faturado / Destinatário (Opcional)</label>
-                            <select id="selectFaturado">
-                                <option value="">Nenhum / Não informado</option>
-                            </select>
-                        </div>
-
-                        <div class="form-field-group">
-                            <label for="dataEmissao">Data de Emissão *</label>
-                            <input type="date" id="dataEmissao" required>
-                        </div>
-
-                        <div class="form-field-group">
-                            <label for="valorTotal">Valor Total (R$) *</label>
-                            <input type="text" id="valorTotal" required placeholder="0.00">
-                        </div>
-
-                        <div class="form-field-group form-col-full">
-                            <label for="selectClassificacoes">Classificações (Uma ou mais categorias) *</label>
-                            <select id="selectClassificacoes" multiple size="4" style="height: auto;" required>
-                                <!-- Preenchido dinamicamente -->
-                            </select>
-                            <small style="color: #64748b;">Segure <code>Ctrl</code> (Windows) para selecionar múltiplas classificações.</small>
-                        </div>
-
-                        <div class="form-field-group form-col-full">
-                            <label for="descricaoProdutos">Descrição dos Produtos / Serviços</label>
-                            <textarea id="descricaoProdutos" rows="2" placeholder="Resumo dos itens da nota ou descrição do serviço"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Seção de Parcelas (com datas de vencimento distintas) -->
-                    <div style="margin-top: 16px; border-top: 1px dashed var(--border-color); padding-top: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <label style="font-weight: 700; color: var(--text-primary); font-size: 14px;">
-                                <i class="fa-solid fa-calendar-days"></i> Parcelas do Movimento (Vencimentos Distintos)
-                            </label>
-                            <button type="button" id="btnAddParcela" class="btn-action-edit" style="background:#e0e7ff; color:#3730a3;">
-                                <i class="fa-solid fa-plus"></i> Adicionar Parcela
-                            </button>
-                        </div>
-                        <div id="parcelasContainer" style="display: flex; flex-direction: column; gap: 8px;">
-                            <!-- Linhas de parcelas injetadas via JS -->
-                        </div>
-                    </div>
+            <div style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="clay-label" style="margin: 0; white-space: nowrap;">Filtrar Tipo:</label>
+                    <select id="filtroTipo" class="clay-select" style="width: auto; padding: 8px 12px;">
+                        <option value="">Todos os Tipos</option>
+                        <option value="APAGAR">Contas a Pagar</option>
+                        <option value="RECEBER">Contas a Receber</option>
+                    </select>
                 </div>
-                <div class="crud-modal-footer">
-                    <button type="button" class="btn-modal-close" id="btnCancelarModal">Cancelar</button>
-                    <button type="submit" class="btn-modal-save" id="btnSalvarModal"><i class="fa-solid fa-check"></i> Salvar Lançamento</button>
-                </div>
-            </form>
+
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="checkInativos" style="accent-color: var(--color-primary-600); width: 16px; height: 16px;">
+                    <span>Incluir Inativos</span>
+                </label>
+            </div>
         </div>
     </div>
 
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- TABELA COM INDEXAÇÃO POR COLUNA (INICIALMENTE VAZIA) -->
+    <div class="table-card">
+        <table class="styled-table" id="tabelaContas">
+            <thead>
+                <tr>
+                    <th data-sort="id" style="width: 70px;">ID <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="tipo" style="width: 140px;">Tipo <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="numero_documento" style="width: 130px;">Nº Doc / NF <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th>Fornecedor / Cliente</th>
+                    <th>Classificações</th>
+                    <th data-sort="valor_total" style="width: 130px;">Valor Total <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th style="width: 110px;">Parcelas</th>
+                    <th data-sort="status" style="width: 100px;">Status <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th style="width: 150px; text-align: center;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaCorpo">
+                <tr>
+                    <td colspan="9" class="table-empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <p>Tabela de registros inicialmente vazia.</p>
+                        <small>Utilize a barra de pesquisa ou clique em <strong>TODOS</strong> para carregar os movimentos de contas com status <strong>ATIVO</strong>.</small>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-    <script>
-        let currentSort = 'data_emissao';
-        let currentDir = 'desc';
-        let lastQuery = '';
-        let lastTodos = false;
-        let auxiliares = { pessoas: [], classificacoes: [] };
+<!-- MODAL FORMULÁRIO (CREATE / UPDATE - MOVIMENTO + PARCELAS) -->
+<div class="crud-modal-overlay hidden" id="modalConta">
+    <div class="crud-modal-card" style="max-width: 740px;">
+        <div class="crud-modal-header">
+            <div class="crud-modal-title" id="modalTitulo">Novo Lançamento de Conta</div>
+            <button type="button" class="crud-modal-close" id="btnModalClose">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form id="formConta">
+            <div class="crud-modal-body">
+                <input type="hidden" id="contaId">
+                <input type="hidden" id="contaStatus" value="ATIVO">
 
-        const tabelaCorpo = document.getElementById('tabelaCorpo');
-        const searchInput = document.getElementById('searchInput');
-        const btnBuscar = document.getElementById('btnBuscar');
-        const btnTodos = document.getElementById('btnTodos');
-        const btnNovo = document.getElementById('btnNovo');
-        const modalConta = document.getElementById('modalConta');
-        const btnFecharModal = document.getElementById('btnFecharModal');
-        const btnCancelarModal = document.getElementById('btnCancelarModal');
-        const formConta = document.getElementById('formConta');
-        const modalTitulo = document.getElementById('modalTitulo');
-        const parcelasContainer = document.getElementById('parcelasContainer');
-        const btnAddParcela = document.getElementById('btnAddParcela');
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                    <div class="clay-input-group">
+                        <label class="clay-label">Tipo de Movimento <span class="required-star">*</span></label>
+                        <select id="contaTipo" class="clay-select" required>
+                            <option value="APAGAR">Contas a Pagar (Despesa)</option>
+                            <option value="RECEBER">Contas a Receber (Receita)</option>
+                        </select>
+                    </div>
 
-        function showToast(msg, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = msg;
-            container.appendChild(toast);
-            setTimeout(() => { toast.remove(); }, 3500);
-        }
+                    <div class="clay-input-group">
+                        <label class="clay-label">Número do Documento / NF <span class="required-star">*</span></label>
+                        <input type="text" id="contaNumeroDoc" class="clay-input" placeholder="Ex.: 000.084.682" required>
+                    </div>
+                </div>
 
-        async function carregarAuxiliares() {
-            try {
-                const resp = await fetch('/api/auxiliares/');
-                auxiliares = await resp.json();
-                
-                const selPessoa = document.getElementById('selectPessoa');
-                const selFaturado = document.getElementById('selectFaturado');
-                const selClassif = document.getElementById('selectClassificacoes');
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                    <div class="clay-input-group">
+                        <label class="clay-label">Fornecedor / Cliente <span class="required-star">*</span></label>
+                        <select id="contaPessoa" class="clay-select" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
 
-                selPessoa.innerHTML = '<option value="">Selecione...</option>';
-                selFaturado.innerHTML = '<option value="">Nenhum / Não informado</option>';
-                selClassif.innerHTML = '';
+                    <div class="clay-input-group">
+                        <label class="clay-label">Faturado (Destinatário)</label>
+                        <select id="contaFaturado" class="clay-select">
+                            <option value="">Nenhum / Mesmo que fornecedor</option>
+                        </select>
+                    </div>
+                </div>
 
-                auxiliares.pessoas.forEach(p => {
-                    const opt1 = document.createElement('option');
-                    opt1.value = p.id;
-                    opt1.textContent = p.nome;
-                    selPessoa.appendChild(opt1);
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                    <div class="clay-input-group">
+                        <label class="clay-label">Data de Emissão <span class="required-star">*</span></label>
+                        <input type="date" id="contaDataEmissao" class="clay-input" required>
+                    </div>
 
-                    const opt2 = document.createElement('option');
-                    opt2.value = p.id;
-                    opt2.textContent = p.nome;
-                    selFaturado.appendChild(opt2);
-                });
+                    <div class="clay-input-group">
+                        <label class="clay-label">Valor Total (R$) <span class="required-star">*</span></label>
+                        <input type="number" step="0.01" min="0" id="contaValorTotal" class="clay-input" placeholder="0.00" required>
+                    </div>
+                </div>
 
-                auxiliares.classificacoes.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.descricao;
-                    selClassif.appendChild(opt);
-                });
-            } catch (err) {
-                console.error('Erro ao carregar dados auxiliares:', err);
-            }
-        }
-        carregarAuxiliares();
+                <div class="clay-input-group">
+                    <label class="clay-label">Descrição dos Produtos / Serviços</label>
+                    <textarea id="contaDescricao" class="clay-textarea" rows="2" placeholder="Ex.: Rolamentos, buchas, filtros, graxa..."></textarea>
+                </div>
 
-        async function carregarDados(q = '', todos = false) {
-            lastQuery = q;
-            lastTodos = todos;
-            let url = `/api/contas/list/?sort=${currentSort}&dir=${currentDir}`;
-            if (todos) url += `&todos=1`;
-            else if (q) url += `&q=${encodeURIComponent(q)}`;
+                <!-- Multi-Classificações -->
+                <div class="clay-input-group">
+                    <label class="clay-label">Classificações da Conta (Selecione uma ou mais) <span class="required-star">*</span></label>
+                    <div class="multi-select-box" id="containerCheckClassificacoes">
+                        <!-- Injetado dinamicamente via JS -->
+                    </div>
+                </div>
 
-            try {
-                const resp = await fetch(url);
-                const res = await resp.json();
-                renderTabela(res.data, res.mensagem);
-            } catch (err) {
-                showToast('Erro ao carregar contas: ' + err.message, 'error');
-            }
-        }
-
-        function renderTabela(lista, mensagemVazia) {
-            tabelaCorpo.innerHTML = '';
-            if (!lista || lista.length === 0) {
-                tabelaCorpo.innerHTML = `
-                    <tr>
-                        <td colspan="9" class="table-empty-state">
-                            <i class="fa-regular fa-folder-open"></i>
-                            <p>${mensagemVazia || 'Nenhum registro encontrado.'}</p>
-                            <small>Utilize a barra de pesquisa ou clique em <strong>TODOS</strong> para carregar.</small>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            lista.forEach(m => {
-                const tr = document.createElement('tr');
-                const isAtivo = m.status === 'ATIVO';
-                const isPagar = m.tipo === 'APAGAR';
-
-                const classifTags = m.classificacoes.map(c => `<span class="tag-badge" style="font-size:11px;">${c}</span>`).join(' ') || '-';
-                
-                let parcelasDesc = '';
-                if (m.parcelas && m.parcelas.length > 0) {
-                    parcelasDesc = m.parcelas.map(p => `<div style="font-size:12px;">P${p.numero_parcela}: R$ ${p.valor} <small style="color:#64748b;">(Venc: ${p.data_vencimento})</small></div>`).join('');
-                } else {
-                    parcelasDesc = `<span style="color:#94a3b8;">1 parcela</span>`;
-                }
-
-                tr.innerHTML = `
-                    <td><strong>#${m.id}</strong></td>
-                    <td>
-                        <span class="tag-badge" style="${isPagar ? 'background:#fee2e2;color:#b91c1c;' : 'background:#dcfce7;color:#15803d;'}">
-                            ${m.tipo_display}
+                <!-- Gestão de Parcelas -->
+                <div style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">
+                            <i class="fa-solid fa-calendar-days" style="color: var(--color-primary-600); margin-right: 6px;"></i>
+                            Parcelamento da Conta
                         </span>
-                    </td>
-                    <td><strong>${m.numero_documento}</strong><br><small style="color:#64748b;">Emissão: ${m.data_emissao}</small></td>
-                    <td>
-                        <div style="font-weight:600;">${m.pessoa}</div>
-                        ${m.faturado !== '-' ? `<small style="color:#64748b;">Fat: ${m.faturado}</small>` : ''}
-                    </td>
-                    <td>${classifTags}</td>
-                    <td style="font-weight: 700; color: #0f172a;">R$ ${parseFloat(m.valor_total).toFixed(2)}</td>
-                    <td>${parcelasDesc}</td>
-                    <td>
-                        <span class="status-badge ${isAtivo ? 'ativo' : 'inativo'}">
-                            <i class="fa-solid fa-circle" style="font-size: 8px;"></i> ${m.status}
-                        </span>
-                    </td>
-                    <td style="text-align: center;">
-                        <div class="table-actions" style="justify-content: center;">
-                            <button class="btn-action-edit" onclick="editarConta(${JSON.stringify(m).replace(/"/g, '&quot;')})">
-                                <i class="fa-solid fa-pen-to-square"></i> Editar
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="clay-btn clay-btn-sm clay-btn-secondary" id="btnGerarParcelasAuto">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-distribuir Parcelas
                             </button>
-                            ${isAtivo ? `
-                                <button class="btn-action-delete" onclick="inativarConta(${m.id})">
-                                    <i class="fa-solid fa-ban"></i> Inativar
-                                </button>
-                            ` : `
-                                <button class="btn-action-reactivate" onclick="reativarConta(${m.id})">
-                                    <i class="fa-solid fa-rotate-left"></i> Reativar
-                                </button>
-                            `}
+                            <button type="button" class="clay-btn clay-btn-sm clay-btn-outline" id="btnAddParcela">
+                                <i class="fa-solid fa-plus"></i> Adicionar Parcela
+                            </button>
                         </div>
-                    </td>
-                `;
-                tabelaCorpo.appendChild(tr);
-            });
-        }
+                    </div>
 
-        document.querySelectorAll('th[data-sort]').forEach(th => {
-            th.addEventListener('click', () => {
-                const sortField = th.getAttribute('data-sort');
-                if (currentSort === sortField) {
-                    currentDir = currentDir === 'asc' ? 'desc' : 'asc';
-                } else {
-                    currentSort = sortField;
-                    currentDir = 'asc';
-                }
-                document.querySelectorAll('th[data-sort]').forEach(t => t.classList.remove('sorted'));
-                th.classList.add('sorted');
-                carregarDados(lastQuery, lastTodos);
-            });
+                    <table class="parcelas-subtable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Identificação Única</th>
+                                <th>Vencimento</th>
+                                <th>Valor (R$)</th>
+                                <th style="width: 40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoParcelasModal">
+                            <!-- Injetado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="clay-btn clay-btn-outline" id="btnModalCancelar">Cancelar</button>
+                <button type="submit" class="clay-btn clay-btn-primary" id="btnModalSalvar">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Lançamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    let dadosAtuais = [];
+    let auxiliares = { pessoas: [], classificacoes: [] };
+    let parcelasAtuais = [];
+    let ordenacaoAtual = { coluna: 'data_emissao', direcao: 'desc' };
+
+    const searchInput = document.getElementById('searchInput');
+    const filtroTipo = document.getElementById('filtroTipo');
+    const checkInativos = document.getElementById('checkInativos');
+    const btnBuscar = document.getElementById('btnBuscar');
+    const btnTodos = document.getElementById('btnTodos');
+    const tabelaCorpo = document.getElementById('tabelaCorpo');
+
+    const modal = document.getElementById('modalConta');
+    const modalTitulo = document.getElementById('modalTitulo');
+    const btnNovo = document.getElementById('btnNovo');
+    const btnModalClose = document.getElementById('btnModalClose');
+    const btnModalCancelar = document.getElementById('btnModalCancelar');
+    const formConta = document.getElementById('formConta');
+
+    const contaPessoaSelect = document.getElementById('contaPessoa');
+    const contaFaturadoSelect = document.getElementById('contaFaturado');
+    const containerCheckClassificacoes = document.getElementById('containerCheckClassificacoes');
+    const corpoParcelasModal = document.getElementById('corpoParcelasModal');
+    const btnAddParcela = document.getElementById('btnAddParcela');
+    const btnGerarParcelasAuto = document.getElementById('btnGerarParcelasAuto');
+
+    // Carrega dados auxiliares (pessoas e classificações ativas)
+    try {
+        const resp = await fetch('/api/auxiliares/');
+        auxiliares = await resp.json();
+
+        // Preenche selects de Pessoas
+        auxiliares.pessoas.forEach(p => {
+            const optP = new Option(p.nome, p.id);
+            const optF = new Option(p.nome, p.id);
+            contaPessoaSelect.add(optP);
+            contaFaturadoSelect.add(optF);
         });
 
-        btnBuscar.addEventListener('click', () => {
-            const termo = searchInput.value.trim();
-            if (!termo) {
-                showToast('Digite um termo para pesquisar ou clique em TODOS.', 'warning');
-                return;
-            }
-            carregarDados(termo, false);
-        });
-
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') btnBuscar.click();
-        });
-
-        btnTodos.addEventListener('click', () => {
-            searchInput.value = '';
-            carregarDados('', true);
-        });
-
-        function criarLinhaParcela(numero, valor = '', vencimento = '') {
-            const div = document.createElement('div');
-            div.className = 'linha-parcela';
-            div.style.display = 'grid';
-            div.style.gridTemplateColumns = '80px 1fr 1fr 40px';
-            div.style.gap = '8px';
-            div.style.alignItems = 'center';
-            div.innerHTML = `
-                <span style="font-weight:600; font-size:13px;">Parcela ${numero}</span>
-                <input type="text" class="parc-valor" placeholder="Valor R$" value="${valor}" required style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:4px;">
-                <input type="date" class="parc-venc" value="${vencimento}" required style="padding:6px 10px; border:1px solid #cbd5e1; border-radius:4px;">
-                <button type="button" class="btn-remove-parc" style="background:#fee2e2; color:#b91c1c; border:none; border-radius:4px; height:32px; cursor:pointer;" title="Remover Parcela"><i class="fa-solid fa-trash"></i></button>
+        // Preenche checkboxes de Classificações
+        containerCheckClassificacoes.innerHTML = '';
+        auxiliares.classificacoes.forEach(c => {
+            const label = document.createElement('label');
+            label.className = 'multi-select-item';
+            label.innerHTML = `
+                <input type="checkbox" name="classificacoes_ids" value="${c.id}" style="accent-color: var(--color-primary-600);">
+                <span>${c.descricao}</span>
             `;
-            div.querySelector('.btn-remove-parc').addEventListener('click', () => {
-                if (parcelasContainer.children.length > 1) {
-                    div.remove();
-                    renumerarParcelas();
-                } else {
-                    showToast('O movimento precisa ter ao menos uma parcela.', 'warning');
-                }
+            containerCheckClassificacoes.appendChild(label);
+        });
+    } catch (e) {
+        console.error("Erro ao carregar dados auxiliares:", e);
+    }
+
+    // Inicializa ordenação nas colunas
+    window.initTableSort(document.getElementById('tabelaContas'), (coluna, direcao) => {
+        ordenacaoAtual = { coluna, direcao };
+        ordenarERenderizar();
+    });
+
+    // Detecta parâmetro ?tipo=APAGAR ou ?tipo=RECEBER vindo da barra lateral
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('tipo')) {
+        filtroTipo.value = urlParams.get('tipo');
+        carregarDados(true);
+    }
+
+    btnBuscar.addEventListener('click', () => carregarDados(false));
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') carregarDados(false);
+    });
+
+    btnTodos.addEventListener('click', () => {
+        searchInput.value = '';
+        checkInativos.checked = false;
+        filtroTipo.value = '';
+        carregarDados(true);
+    });
+
+    filtroTipo.addEventListener('change', () => ordenarERenderizar());
+    checkInativos.addEventListener('change', () => carregarDados(false));
+
+    async function carregarDados(forcarTodosAtivos = false) {
+        const termo = searchInput.value.trim();
+        const tipo = filtroTipo.value;
+
+        tabelaCorpo.innerHTML = `
+            <tr>
+                <td colspan="9" class="table-empty-state">
+                    <i class="fa-solid fa-spinner fa-spin" style="color: var(--color-primary-600);"></i>
+                    <p>Consultando lançamentos...</p>
+                </td>
+            </tr>
+        `;
+
+        try {
+            const params = new URLSearchParams({
+                q: termo,
+                todos: forcarTodosAtivos ? '1' : '',
+                sort: ordenacaoAtual.coluna,
+                dir: ordenacaoAtual.direcao
             });
-            return div;
+
+            const resp = await fetch(`/api/contas/list/?${params}`);
+            const res = await resp.json();
+
+            dadosAtuais = res.data || [];
+            ordenarERenderizar();
+            window.showToast('info', 'Lançamentos', `${dadosAtuais.length} contas carregadas.`);
+        } catch (err) {
+            tabelaCorpo.innerHTML = `<tr><td colspan="9" class="table-empty-state"><p>Erro ao conectar com o servidor.</p></td></tr>`;
+        }
+    }
+
+    function ordenarERenderizar() {
+        if (!dadosAtuais || dadosAtuais.length === 0) {
+            tabelaCorpo.innerHTML = `
+                <tr>
+                    <td colspan="9" class="table-empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <p>Nenhuma conta encontrada.</p>
+                        <small>Utilize a barra de pesquisa ou clique em TODOS para listar as contas ativas.</small>
+                    </td>
+                </tr>
+            `;
+            return;
         }
 
-        function renumerarParcelas() {
-            Array.from(parcelasContainer.children).forEach((child, index) => {
-                child.querySelector('span').textContent = `Parcela ${index + 1}`;
-            });
+        let filtrados = [...dadosAtuais];
+        if (filtroTipo.value) {
+            filtrados = filtrados.filter(item => item.tipo === filtroTipo.value);
         }
 
-        btnAddParcela.addEventListener('click', () => {
-            const proxNum = parcelasContainer.children.length + 1;
-            const valorTotal = parseFloat(document.getElementById('valorTotal').value) || 0;
-            const valorSugerido = valorTotal > 0 ? (valorTotal / proxNum).toFixed(2) : '';
-            parcelasContainer.appendChild(criarLinhaParcela(proxNum, valorSugerido, ''));
+        if (!checkInativos.checked) {
+            filtrados = filtrados.filter(item => item.status === 'ATIVO');
+        }
+
+        tabelaCorpo.innerHTML = '';
+        filtrados.forEach(row => {
+            const tr = document.createElement('tr');
+            const isAtivo = row.status === 'ATIVO';
+            const isPagar = row.tipo === 'APAGAR';
+
+            // Classificações
+            const classifsHtml = (row.classificacoes || []).map(c => `
+                <span class="badge badge--neutral" style="font-size: 11px;">${c}</span>
+            `).join(' ');
+
+            tr.innerHTML = `
+                <td><code style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted);">#${row.id}</code></td>
+                <td>
+                    <span class="badge ${isPagar ? 'badge--danger' : 'badge--success'}">
+                        <i class="fa-solid ${isPagar ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        ${isPagar ? 'A Pagar' : 'A Receber'}
+                    </span>
+                </td>
+                <td><code style="font-family: var(--font-mono); font-weight: 700;">${row.numero_documento}</code></td>
+                <td>
+                    <div style="font-weight: 700; color: var(--text-primary);">${row.pessoa}</div>
+                    ${row.faturado && row.faturado !== '-' ? `<small style="color: var(--text-muted);">Fat: ${row.faturado}</small>` : ''}
+                </td>
+                <td><div class="classificacao-badge-list">${classifsHtml || '-'}</div></td>
+                <td><strong style="color: var(--color-primary-600); font-size: 14px;">R$ ${row.valor_total}</strong></td>
+                <td>
+                    <span class="badge badge--info" title="${(row.parcelas || []).length} parcelas">
+                        ${(row.parcelas || []).length} Parc.
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${isAtivo ? 'badge--success' : 'badge--danger'}">
+                        <i class="fa-solid ${isAtivo ? 'fa-check' : 'fa-ban'}"></i> ${row.status}
+                    </span>
+                </td>
+                <td style="text-align: center;">
+                    <div style="display: inline-flex; gap: 6px;">
+                        <button type="button" class="btn-icon-action btn-editar" data-id="${row.id}" title="Editar">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                        ${isAtivo ? `
+                            <button type="button" class="btn-icon-action btn-inativar" data-id="${row.id}" title="Inativar Movimento e Parcelas" style="color: var(--color-danger);">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : `
+                            <button type="button" class="btn-icon-action btn-reativar" data-id="${row.id}" title="Reativar Cadastro" style="color: var(--color-success);">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        `}
+                    </div>
+                </td>
+            `;
+            tabelaCorpo.appendChild(tr);
         });
 
-        btnNovo.addEventListener('click', () => {
-            carregarAuxiliares();
-            formConta.reset();
-            document.getElementById('contaId').value = '';
-            document.getElementById('contaStatus').value = 'ATIVO';
-            document.getElementById('dataEmissao').value = new Date().toISOString().split('T')[0];
-            modalTitulo.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Lançar Conta a Pagar / Receber';
-            
-            parcelasContainer.innerHTML = '';
-            parcelasContainer.appendChild(criarLinhaParcela(1, '', new Date().toISOString().split('T')[0]));
-            
-            modalConta.classList.remove('hidden');
+        document.querySelectorAll('.btn-editar').forEach(btn => {
+            btn.addEventListener('click', () => abrirEdicao(btn.getAttribute('data-id')));
         });
 
-        function fecharModal() {
-            modalConta.classList.add('hidden');
+        document.querySelectorAll('.btn-inativar').forEach(btn => {
+            btn.addEventListener('click', () => inativarRegistro(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.btn-reativar').forEach(btn => {
+            btn.addEventListener('click', () => reativarRegistro(btn.getAttribute('data-id')));
+        });
+    }
+
+    // Modal Create / Edit
+    btnNovo.addEventListener('click', () => {
+        formConta.reset();
+        document.getElementById('contaId').value = '';
+        document.getElementById('contaStatus').value = 'ATIVO';
+        document.getElementById('contaDataEmissao').value = new Date().toISOString().split('T')[0];
+        
+        parcelasAtuais = [
+            { numero: 1, identificacao: 'NF-DOC-P1', vencimento: new Date().toISOString().split('T')[0], valor: '' }
+        ];
+        renderParcelasModal();
+
+        // Desmarca todas as classificações
+        document.querySelectorAll('input[name="classificacoes_ids"]').forEach(cb => cb.checked = false);
+
+        modalTitulo.textContent = 'Novo Lançamento de Conta';
+        modal.classList.remove('hidden');
+    });
+
+    const fecharModal = () => modal.classList.add('hidden');
+    btnModalClose.addEventListener('click', fecharModal);
+    btnModalCancelar.addEventListener('click', fecharModal);
+
+    function renderParcelasModal() {
+        corpoParcelasModal.innerHTML = '';
+        parcelasAtuais.forEach((p, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${idx + 1}</strong></td>
+                <td><input type="text" class="clay-input parcela-ident-input" style="padding: 4px 8px; font-size: 12px;" value="${p.identificacao || ''}"></td>
+                <td><input type="date" class="clay-input parcela-venc-input" style="padding: 4px 8px; font-size: 12px;" value="${p.vencimento || ''}"></td>
+                <td><input type="number" step="0.01" class="clay-input parcela-val-input" style="padding: 4px 8px; font-size: 12px; width: 110px;" value="${p.valor || ''}"></td>
+                <td style="text-align: center;">
+                    ${parcelasAtuais.length > 1 ? `
+                        <button type="button" class="btn-icon-action btn-remover-parc" data-idx="${idx}" style="width: 26px; height: 26px; font-size: 11px; color: var(--color-danger);">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    ` : ''}
+                </td>
+            `;
+            corpoParcelasModal.appendChild(tr);
+        });
+
+        // Listeners de remoção
+        document.querySelectorAll('.btn-remover-parc').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-idx'));
+                parcelasAtuais.splice(idx, 1);
+                renderParcelasModal();
+            });
+        });
+    }
+
+    btnAddParcela.addEventListener('click', () => {
+        const numDoc = document.getElementById('contaNumeroDoc').value.trim() || 'DOC';
+        const nextNum = parcelasAtuais.length + 1;
+        parcelasAtuais.push({
+            numero: nextNum,
+            identificacao: `NF-${numDoc.replace(/[^0-9]/g, '') || '001'}-P${nextNum}`,
+            vencimento: new Date().toISOString().split('T')[0],
+            valor: ''
+        });
+        renderParcelasModal();
+    });
+
+    btnGerarParcelasAuto.addEventListener('click', () => {
+        const total = parseFloat(document.getElementById('contaValorTotal').value) || 0;
+        const numDoc = document.getElementById('contaNumeroDoc').value.trim() || 'DOC';
+        const count = parcelasAtuais.length || 1;
+        if (total <= 0) {
+            window.showToast('warning', 'Valor Total', 'Informe o Valor Total da conta antes de distribuir.');
+            return;
         }
 
-        btnFecharModal.addEventListener('click', fecharModal);
-        btnCancelarModal.addEventListener('click', fecharModal);
+        const valorCada = (total / count).toFixed(2);
+        parcelasAtuais = parcelasAtuais.map((p, idx) => ({
+            ...p,
+            identificacao: `NF-${numDoc.replace(/[^0-9]/g, '') || '001'}-P${idx + 1}`,
+            valor: valorCada
+        }));
+        renderParcelasModal();
+        window.showToast('success', 'Distribuído', `Valor total dividido em ${count} parcela(s).`);
+    });
 
-        window.editarConta = function(m) {
-            carregarAuxiliares();
-            document.getElementById('contaId').value = m.id;
-            document.getElementById('contaStatus').value = m.status;
-            document.getElementById('tipoConta').value = m.tipo;
-            document.getElementById('numeroDocumento').value = m.numero_documento;
-            document.getElementById('selectPessoa').value = m.pessoa_id;
-            document.getElementById('selectFaturado').value = m.faturado_id || '';
-            document.getElementById('valorTotal').value = m.valor_total;
-            document.getElementById('descricaoProdutos').value = m.descricao;
+    function abrirEdicao(id) {
+        const item = dadosAtuais.find(d => String(d.id) === String(id));
+        if (!item) return;
 
-            // Converter data dd/mm/yyyy para yyyy-mm-dd
-            if (m.data_emissao && m.data_emissao.includes('/')) {
-                const parts = m.data_emissao.split('/');
-                document.getElementById('dataEmissao').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
+        document.getElementById('contaId').value = item.id;
+        document.getElementById('contaStatus').value = item.status;
+        document.getElementById('contaTipo').value = item.tipo;
+        document.getElementById('contaNumeroDoc').value = item.numero_documento;
+        document.getElementById('contaPessoa').value = item.pessoa_id;
+        document.getElementById('contaFaturado').value = item.faturado_id || '';
+        document.getElementById('contaValorTotal').value = item.valor_total;
+        document.getElementById('contaDescricao').value = item.descricao;
 
-            // Selecionar classificações
-            const selClassif = document.getElementById('selectClassificacoes');
-            Array.from(selClassif.options).forEach(opt => {
-                opt.selected = m.classificacoes_ids.includes(parseInt(opt.value));
-            });
+        // Converte DD/MM/AAAA para AAAA-MM-DD
+        const parts = item.data_emissao.split('/');
+        if (parts.length === 3) {
+            document.getElementById('contaDataEmissao').value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
 
-            // Carregar parcelas
-            parcelasContainer.innerHTML = '';
-            if (m.parcelas && m.parcelas.length > 0) {
-                m.parcelas.forEach((p, idx) => {
-                    let vencFormatado = '';
-                    if (p.data_vencimento && p.data_vencimento.includes('/')) {
-                        const parts = p.data_vencimento.split('/');
-                        vencFormatado = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                    }
-                    parcelasContainer.appendChild(criarLinhaParcela(idx + 1, p.valor, vencFormatado));
-                });
-            } else {
-                parcelasContainer.appendChild(criarLinhaParcela(1, m.valor_total, ''));
-            }
+        // Marca checkboxes de classificações
+        const ids = item.classificacoes_ids || [];
+        document.querySelectorAll('input[name="classificacoes_ids"]').forEach(cb => {
+            cb.checked = ids.includes(parseInt(cb.value));
+        });
 
-            modalTitulo.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Editar Movimento #${m.id}`;
-            modalConta.classList.remove('hidden');
-        };
-
-        formConta.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const selClassif = document.getElementById('selectClassificacoes');
-            const classificacoesIds = Array.from(selClassif.selectedOptions).map(opt => parseInt(opt.value));
-
-            if (classificacoesIds.length === 0) {
-                showToast('Selecione ao menos uma classificação.', 'warning');
-                return;
-            }
-
-            // Obter parcelas
-            const parcelas = [];
-            Array.from(parcelasContainer.children).forEach((child, idx) => {
-                const val = child.querySelector('.parc-valor').value.trim();
-                const venc = child.querySelector('.parc-venc').value.trim();
-                if (val && venc) {
-                    parcelas.push({
-                        numero_parcela: idx + 1,
-                        valor: val,
-                        data_vencimento: venc
-                    });
-                }
-            });
-
-            const payload = {
-                id: document.getElementById('contaId').value || null,
-                tipo: document.getElementById('tipoConta').value,
-                numero_documento: document.getElementById('numeroDocumento').value.trim(),
-                pessoa_id: document.getElementById('selectPessoa').value,
-                faturado_id: document.getElementById('selectFaturado').value || null,
-                data_emissao: document.getElementById('dataEmissao').value,
-                valor_total: document.getElementById('valorTotal').value.trim(),
-                descricao: document.getElementById('descricaoProdutos').value.trim(),
-                classificacoes_ids: classificacoesIds,
-                parcelas: parcelas,
-                status: document.getElementById('contaStatus').value || 'ATIVO'
+        // Parcelas
+        parcelasAtuais = (item.parcelas || []).map(p => {
+            let vDate = p.data_vencimento;
+            const pParts = vDate.split('/');
+            if (pParts.length === 3) vDate = `${pParts[2]}-${pParts[1]}-${pParts[0]}`;
+            return {
+                numero: p.numero_parcela,
+                identificacao: p.identificacao,
+                vencimento: vDate,
+                valor: p.valor
             };
+        });
+        if (parcelasAtuais.length === 0) {
+            parcelasAtuais = [{ numero: 1, identificacao: 'NF-DOC-P1', vencimento: '', valor: item.valor_total }];
+        }
+        renderParcelasModal();
 
-            try {
-                const resp = await fetch('/api/contas/save/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const res = await resp.json();
-                if (res.success) {
-                    showToast(res.message, 'success');
-                    fecharModal();
-                    carregarDados(lastQuery, lastTodos || !lastQuery);
-                } else {
-                    showToast(res.error || 'Erro ao salvar movimento', 'error');
-                }
-            } catch (err) {
-                showToast('Falha na comunicação: ' + err.message, 'error');
-            }
+        modalTitulo.textContent = `Editar Conta #${item.id}`;
+        modal.classList.remove('hidden');
+    }
+
+    formConta.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Coleta classificações marcadas
+        const marcadas = Array.from(document.querySelectorAll('input[name="classificacoes_ids"]:checked')).map(cb => parseInt(cb.value));
+        if (marcadas.length === 0) {
+            window.showToast('warning', 'Classificação', 'Selecione ao menos uma classificação para a conta.');
+            return;
+        }
+
+        // Sincroniza dados das parcelas da tabela do modal
+        const rows = corpoParcelasModal.querySelectorAll('tr');
+        const parcelasPayload = [];
+        rows.forEach((tr, i) => {
+            parcelasPayload.push({
+                numero: i + 1,
+                identificacao: tr.querySelector('.parcela-ident-input').value.trim() || `PARC-${i+1}`,
+                data_vencimento: tr.querySelector('.parcela-venc-input').value,
+                valor: parseFloat(tr.querySelector('.parcela-val-input').value) || 0
+            });
         });
 
-        window.inativarConta = async function(id) {
-            if (!confirm(`Deseja inativar o movimento #${id} e todas as suas parcelas? (Exclusão lógica)`)) return;
-            try {
-                const resp = await fetch(`/api/contas/delete/${id}/`, { method: 'POST' });
-                const res = await resp.json();
-                if (res.success) {
-                    showToast(res.message, 'success');
-                    carregarDados(lastQuery, lastTodos);
-                }
-            } catch (err) {
-                showToast('Erro ao inativar: ' + err.message, 'error');
-            }
+        const payload = {
+            id: document.getElementById('contaId').value || null,
+            tipo: document.getElementById('contaTipo').value,
+            numero_documento: document.getElementById('contaNumeroDoc').value.trim(),
+            pessoa_id: parseInt(document.getElementById('contaPessoa').value),
+            faturado_id: document.getElementById('contaFaturado').value ? parseInt(document.getElementById('contaFaturado').value) : null,
+            data_emissao: document.getElementById('contaDataEmissao').value,
+            valor_total: parseFloat(document.getElementById('contaValorTotal').value) || 0,
+            descricao: document.getElementById('contaDescricao').value.trim(),
+            classificacoes_ids: marcadas,
+            parcelas: parcelasPayload
         };
 
-        window.reativarConta = async function(id) {
-            if (!confirm(`Deseja reativar o movimento #${id} e suas parcelas?`)) return;
-            try {
-                const resp = await fetch(`/api/contas/reativar/${id}/`, { method: 'POST' });
-                const res = await resp.json();
-                if (res.success) {
-                    showToast(res.message, 'success');
-                    carregarDados(lastQuery, lastTodos);
-                }
-            } catch (err) {
-                showToast('Erro ao reativar: ' + err.message, 'error');
+        const btnSalvar = document.getElementById('btnModalSalvar');
+        btnSalvar.disabled = true;
+
+        try {
+            const resp = await fetch('/api/contas/save/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const res = await resp.json();
+            btnSalvar.disabled = false;
+
+            if (res.success || res.sucesso) {
+                window.showToast('success', 'Salvo!', res.message || 'Lançamento de conta gravado com sucesso.');
+                fecharModal();
+                carregarDados(false);
+            } else {
+                window.showToast('error', 'Falha ao Salvar', res.error || res.erro || 'Erro ao processar.');
             }
-        };
-    </script>
-</body>
-</html>
+        } catch (err) {
+            btnSalvar.disabled = false;
+            window.showToast('error', 'Erro', 'Falha de comunicação com o servidor.');
+        }
+    });
+
+    function inativarRegistro(id) {
+        window.confirmDialog({
+            title: 'Inativar Movimento de Contas',
+            message: 'O movimento e todas as suas parcelas vinculadas serão inativados (exclusão lógica). Deseja continuar?',
+            confirmText: 'Inativar',
+            isDanger: true,
+            onConfirm: async () => {
+                try {
+                    const resp = await fetch(`/api/contas/delete/${id}/`, { method: 'POST' });
+                    const res = await resp.json();
+                    if (res.success || res.sucesso) {
+                        window.showToast('success', 'Inativado', res.message || 'Movimento inativado.');
+                        carregarDados(false);
+                    } else {
+                        window.showToast('error', 'Erro', res.error || 'Não foi possível inativar.');
+                    }
+                } catch {
+                    window.showToast('error', 'Erro', 'Falha na conexão.');
+                }
+            }
+        });
+    }
+
+    function reativarRegistro(id) {
+        window.confirmDialog({
+            title: 'Reativar Movimento de Contas',
+            message: 'Deseja reativar este movimento e todas as suas parcelas, alterando seu status para ATIVO?',
+            confirmText: 'Reativar',
+            isDanger: false,
+            onConfirm: async () => {
+                try {
+                    const resp = await fetch(`/api/contas/reativar/${id}/`, { method: 'POST' });
+                    const res = await resp.json();
+                    if (res.success || res.sucesso) {
+                        window.showToast('success', 'Reativado', res.message || 'Movimento reativado.');
+                        carregarDados(false);
+                    } else {
+                        window.showToast('error', 'Erro', res.error || 'Não foi possível reativar.');
+                    }
+                } catch {
+                    window.showToast('error', 'Erro', 'Falha na conexão.');
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,383 @@
+{% extends "extrator/base.html" %}
+
+{% block title %}Manter Classificação • NotaVision N2{% endblock %}
+{% block breadcrumb_section %}Atividades Acadêmicas{% endblock %}
+{% block breadcrumb_current %}Manter Classificação{% endblock %}
+
+{% block content %}
+<div class="crud-page-container">
+    <!-- CABEÇALHO DO MÓDULO (ESPELHADO DO FARM-FIN) -->
+    <div class="page-title-section">
+        <div>
+            <h1 class="page-title">Manter Classificação</h1>
+            <p class="page-description">Gerencie Tipos de Despesas e Receitas vinculadas aos lançamentos de contas.</p>
+        </div>
+        <button type="button" class="clay-btn clay-btn-primary" id="btnNovo">
+            <i class="fa-solid fa-plus"></i> Inserir Nova Classificação
+        </button>
+    </div>
+
+    <!-- TOOLBAR DE BUSCA E FILTROS -->
+    <div class="clay-card" style="padding: var(--space-4); margin-bottom: var(--space-6);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 280px;">
+                <div class="clay-input-icon-wrap" style="flex: 1;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" class="clay-input" placeholder="Buscar por descrição ou tipo..." autocomplete="off">
+                </div>
+                <button type="button" class="clay-btn clay-btn-primary" id="btnBuscar">
+                    <i class="fa-solid fa-magnifying-glass"></i> Buscar
+                </button>
+                <button type="button" class="clay-btn clay-btn-secondary" id="btnTodos" title="Carrega todos os registros com status ATIVO">
+                    <i class="fa-solid fa-list-check"></i> TODOS
+                </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label class="clay-label" style="margin: 0; white-space: nowrap;">Filtrar Tipo:</label>
+                    <select id="filtroTipo" class="clay-select" style="width: auto; padding: 8px 12px;">
+                        <option value="">Todos os Tipos</option>
+                        <option value="DESPESA">Despesa</option>
+                        <option value="RECEITA">Receita</option>
+                    </select>
+                </div>
+
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="checkInativos" style="accent-color: var(--color-primary-600); width: 16px; height: 16px;">
+                    <span>Incluir Inativos</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELA COM INDEXAÇÃO POR COLUNA (INICIALMENTE VAZIA) -->
+    <div class="table-card">
+        <table class="styled-table" id="tabelaClassificacoes">
+            <thead>
+                <tr>
+                    <th data-sort="id" style="width: 80px;">ID <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="descricao">Descrição da Classificação <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="tipo" style="width: 150px;">Tipo <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th data-sort="status" style="width: 110px;">Status <i class="fa-solid fa-sort sort-icon"></i></th>
+                    <th style="width: 150px; text-align: center;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaCorpo">
+                <tr>
+                    <td colspan="5" class="table-empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <p>Tabela de registros inicialmente vazia.</p>
+                        <small>Utilize a barra de pesquisa ou clique em <strong>TODOS</strong> para carregar as classificações com status <strong>ATIVO</strong>.</small>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL FORMULÁRIO -->
+<div class="crud-modal-overlay hidden" id="modalClassificacao">
+    <div class="crud-modal-card">
+        <div class="crud-modal-header">
+            <div class="crud-modal-title" id="modalTitulo">Inserir Nova Classificação</div>
+            <button type="button" class="crud-modal-close" id="btnModalClose">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form id="formClassificacao">
+            <div class="crud-modal-body">
+                <input type="hidden" id="classificacaoId">
+                <input type="hidden" id="classificacaoStatus" value="ATIVO">
+
+                <div class="clay-input-group">
+                    <label class="clay-label">Tipo de Movimento <span class="required-star">*</span></label>
+                    <select id="classificacaoTipo" class="clay-select" required>
+                        <option value="DESPESA">Despesa (Contas a Pagar)</option>
+                        <option value="RECEITA">Receita (Contas a Receber)</option>
+                    </select>
+                </div>
+
+                <div class="clay-input-group">
+                    <label class="clay-label">Descrição da Classificação <span class="required-star">*</span></label>
+                    <input type="text" id="classificacaoDescricao" class="clay-input" placeholder="Ex.: MANUTENÇÃO E OPERAÇÃO, PEÇAS, COMBUSTÍVEL..." required>
+                </div>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="clay-btn clay-btn-outline" id="btnModalCancelar">Cancelar</button>
+                <button type="submit" class="clay-btn clay-btn-primary" id="btnModalSalvar">
+                    <i class="fa-solid fa-floppy-disk"></i> Salvar Classificação
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let dadosAtuais = [];
+    let ordenacaoAtual = { coluna: 'descricao', direcao: 'asc' };
+
+    const searchInput = document.getElementById('searchInput');
+    const filtroTipo = document.getElementById('filtroTipo');
+    const checkInativos = document.getElementById('checkInativos');
+    const btnBuscar = document.getElementById('btnBuscar');
+    const btnTodos = document.getElementById('btnTodos');
+    const tabelaCorpo = document.getElementById('tabelaCorpo');
+
+    const modal = document.getElementById('modalClassificacao');
+    const modalTitulo = document.getElementById('modalTitulo');
+    const btnNovo = document.getElementById('btnNovo');
+    const btnModalClose = document.getElementById('btnModalClose');
+    const btnModalCancelar = document.getElementById('btnModalCancelar');
+    const formClassificacao = document.getElementById('formClassificacao');
+
+    window.initTableSort(document.getElementById('tabelaClassificacoes'), (coluna, direcao) => {
+        ordenacaoAtual = { coluna, direcao };
+        ordenarERenderizar();
+    });
+
+    btnBuscar.addEventListener('click', () => carregarDados(false));
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') carregarDados(false);
+    });
+
+    btnTodos.addEventListener('click', () => {
+        searchInput.value = '';
+        checkInativos.checked = false;
+        filtroTipo.value = '';
+        carregarDados(true);
+    });
+
+    filtroTipo.addEventListener('change', () => ordenarERenderizar());
+    checkInativos.addEventListener('change', () => carregarDados(false));
+
+    async function carregarDados(forcarTodosAtivos = false) {
+        const termo = searchInput.value.trim();
+        const tipo = filtroTipo.value;
+        const incluirInativos = forcarTodosAtivos ? false : checkInativos.checked;
+
+        tabelaCorpo.innerHTML = `
+            <tr>
+                <td colspan="5" class="table-empty-state">
+                    <i class="fa-solid fa-spinner fa-spin" style="color: var(--color-primary-600);"></i>
+                    <p>Consultando registros...</p>
+                </td>
+            </tr>
+        `;
+
+        try {
+            const params = new URLSearchParams({
+                busca: termo,
+                tipo: tipo,
+                incluir_inativos: incluirInativos ? 'true' : 'false',
+                modo_todos: forcarTodosAtivos ? 'true' : 'false'
+            });
+
+            const resp = await fetch(`/api/classificacoes/list/?${params}`);
+            const res = await resp.json();
+
+            if (res.sucesso) {
+                dadosAtuais = res.data || [];
+                ordenarERenderizar();
+                window.showToast('info', 'Registros', `${dadosAtuais.length} classificações carregadas.`);
+            } else {
+                tabelaCorpo.innerHTML = `<tr><td colspan="5" class="table-empty-state"><p>${res.erro || 'Falha ao buscar.'}</p></td></tr>`;
+            }
+        } catch (err) {
+            tabelaCorpo.innerHTML = `<tr><td colspan="5" class="table-empty-state"><p>Erro ao conectar com o servidor.</p></td></tr>`;
+        }
+    }
+
+    function ordenarERenderizar() {
+        if (!dadosAtuais || dadosAtuais.length === 0) {
+            tabelaCorpo.innerHTML = `
+                <tr>
+                    <td colspan="5" class="table-empty-state">
+                        <i class="fa-regular fa-folder-open"></i>
+                        <p>Nenhuma classificação encontrada.</p>
+                        <small>Ajuste os filtros ou clique em TODOS para listar as ativas.</small>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let filtrados = [...dadosAtuais];
+        if (filtroTipo.value) {
+            filtrados = filtrados.filter(item => item.tipo === filtroTipo.value);
+        }
+
+        const { coluna, direcao } = ordenacaoAtual;
+        filtrados.sort((a, b) => {
+            let valA = a[coluna] || '';
+            let valB = b[coluna] || '';
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+            if (valA < valB) return direcao === 'asc' ? -1 : 1;
+            if (valA > valB) return direcao === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        tabelaCorpo.innerHTML = '';
+        filtrados.forEach(row => {
+            const tr = document.createElement('tr');
+            const isAtivo = row.status === 'ATIVO';
+            const isDespesa = row.tipo === 'DESPESA';
+
+            tr.innerHTML = `
+                <td><code style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted);">#${row.id}</code></td>
+                <td><div style="font-weight: 700; color: var(--text-primary);">${row.descricao}</div></td>
+                <td>
+                    <span class="badge ${isDespesa ? 'badge--warning' : 'badge--info'}">
+                        <i class="fa-solid ${isDespesa ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        ${row.tipo_display || row.tipo}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${isAtivo ? 'badge--success' : 'badge--danger'}">
+                        <i class="fa-solid ${isAtivo ? 'fa-check' : 'fa-ban'}"></i> ${row.status}
+                    </span>
+                </td>
+                <td style="text-align: center;">
+                    <div style="display: inline-flex; gap: 6px;">
+                        <button type="button" class="btn-icon-action btn-editar" data-id="${row.id}" title="Editar">
+                            <i class="fa-solid fa-pencil"></i>
+                        </button>
+                        ${isAtivo ? `
+                            <button type="button" class="btn-icon-action btn-inativar" data-id="${row.id}" title="Inativar (Exclusão Lógica)" style="color: var(--color-danger);">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : `
+                            <button type="button" class="btn-icon-action btn-reativar" data-id="${row.id}" title="Reativar Cadastro" style="color: var(--color-success);">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                        `}
+                    </div>
+                </td>
+            `;
+            tabelaCorpo.appendChild(tr);
+        });
+
+        document.querySelectorAll('.btn-editar').forEach(btn => {
+            btn.addEventListener('click', () => abrirEdicao(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.btn-inativar').forEach(btn => {
+            btn.addEventListener('click', () => inativarRegistro(btn.getAttribute('data-id')));
+        });
+
+        document.querySelectorAll('.btn-reativar').forEach(btn => {
+            btn.addEventListener('click', () => reativarRegistro(btn.getAttribute('data-id')));
+        });
+    }
+
+    btnNovo.addEventListener('click', () => {
+        formClassificacao.reset();
+        document.getElementById('classificacaoId').value = '';
+        document.getElementById('classificacaoStatus').value = 'ATIVO';
+        modalTitulo.textContent = 'Inserir Nova Classificação';
+        modal.classList.remove('hidden');
+    });
+
+    const fecharModal = () => modal.classList.add('hidden');
+    btnModalClose.addEventListener('click', fecharModal);
+    btnModalCancelar.addEventListener('click', fecharModal);
+
+    function abrirEdicao(id) {
+        const item = dadosAtuais.find(d => String(d.id) === String(id));
+        if (!item) return;
+
+        document.getElementById('classificacaoId').value = item.id;
+        document.getElementById('classificacaoStatus').value = item.status;
+        document.getElementById('classificacaoTipo').value = item.tipo;
+        document.getElementById('classificacaoDescricao').value = item.descricao;
+
+        modalTitulo.textContent = `Editar Classificação #${item.id}`;
+        modal.classList.remove('hidden');
+    }
+
+    formClassificacao.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            id: document.getElementById('classificacaoId').value || null,
+            tipo: document.getElementById('classificacaoTipo').value,
+            descricao: document.getElementById('classificacaoDescricao').value.trim(),
+            status: document.getElementById('classificacaoStatus').value || 'ATIVO'
+        };
+
+        const btnSalvar = document.getElementById('btnModalSalvar');
+        btnSalvar.disabled = true;
+
+        try {
+            const resp = await fetch('/api/classificacoes/save/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const res = await resp.json();
+            btnSalvar.disabled = false;
+
+            if (res.sucesso) {
+                window.showToast('success', 'Salvo!', res.mensagem || 'Classificação salva com sucesso.');
+                fecharModal();
+                carregarDados(false);
+            } else {
+                window.showToast('error', 'Falha ao Salvar', res.erro || 'Erro ao processar.');
+            }
+        } catch (err) {
+            btnSalvar.disabled = false;
+            window.showToast('error', 'Erro', 'Falha de comunicação.');
+        }
+    });
+
+    function inativarRegistro(id) {
+        window.confirmDialog({
+            title: 'Inativar Classificação',
+            message: 'O cadastro nunca é excluído fisicamente (exclusão lógica). Seu status será alterado para INATIVO. Deseja continuar?',
+            confirmText: 'Inativar',
+            isDanger: true,
+            onConfirm: async () => {
+                try {
+                    const resp = await fetch(`/api/classificacoes/delete/${id}/`, { method: 'POST' });
+                    const res = await resp.json();
+                    if (res.sucesso) {
+                        window.showToast('success', 'Inativado', res.mensagem || 'Classificação inativada.');
+                        carregarDados(false);
+                    } else {
+                        window.showToast('error', 'Erro', res.erro || 'Não foi possível inativar.');
+                    }
+                } catch {
+                    window.showToast('error', 'Erro', 'Falha na conexão.');
+                }
+            }
+        });
+    }
+
+    function reativarRegistro(id) {
+        window.confirmDialog({
+            title: 'Reativar Classificação',
+            message: 'Deseja reativar esta classificação, alterando seu status para ATIVO novamente?',
+            confirmText: 'Reativar',
+            isDanger: false,
+            onConfirm: async () => {
+                try {
+                    const resp = await fetch(`/api/classificacoes/reativar/${id}/`, { method: 'POST' });
+                    const res = await resp.json();
+                    if (res.sucesso) {
+                        window.showToast('success', 'Reativado', res.mensagem || 'Classificação reativada.');
+                        carregarDados(false);
+                    } else {
+                        window.showToast('error', 'Erro', res.erro || 'Não foi possível reativar.');
+                    }
+                } catch {
+                    window.showToast('error', 'Erro', 'Falha na conexão.');
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

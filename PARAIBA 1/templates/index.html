@@ -1,384 +1,506 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NotaVision - Extração Inteligente & Gestão Financeira N2</title>
-    <script>
-        (function() {
-            var token = localStorage.getItem('AUTH_TOKEN');
-            var path = window.location.pathname.toLowerCase();
-            var isAuthPage = path.endsWith('/login.html') || 
-                             path.endsWith('/register.html') || 
-                             path.endsWith('/login') || 
-                             path.endsWith('/register');
-            if (!token && !isAuthPage) {
-                window.location.replace('/login.html');
-            }
-        })();
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/etapa2.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="/static/js/theme.js"></script>
-</head>
-<body>
-    <header class="app-header">
-        <div class="header-container">
-            <div class="brand-group">
-                <div class="brand-badge">NotaVision</div>
-                <div class="brand-info">
-                    <span class="brand-title">NotaVision · Prática de Engenharia de Software</span>
-                    <span class="brand-subtitle">Avaliação N2 - Processamento Inteligente com LLM Gemini</span>
-                </div>
-            </div>
+{% extends "extrator/base.html" %}
 
-            <!-- Navegação para os Módulos da 2ª Etapa e CRUDs -->
-            <nav class="nav-menu">
-                <a href="/sistema/" class="nav-link active"><i class="fa-solid fa-file-invoice"></i> Extração & Análise</a>
-                <a href="/pessoas/" class="nav-link"><i class="fa-solid fa-users"></i> Pessoas</a>
-                <a href="/classificacoes/" class="nav-link"><i class="fa-solid fa-tags"></i> Classificação</a>
-                <a href="/contas/" class="nav-link"><i class="fa-solid fa-receipt"></i> Contas</a>
-            </nav>
+{% block title %}Processador de NF (IA) • NotaVision N2{% endblock %}
+{% block breadcrumb_section %}Atividades Acadêmicas{% endblock %}
+{% block breadcrumb_current %}Processador de NF (IA){% endblock %}
 
-            <div class="header-actions">
-                <button type="button" class="btn-api-config" id="btnConfigModal" title="Configurar Chave da API Gemini">
-                    <i class="fa-solid fa-key"></i>
-                    <span id="apiStatusText">Configurar API</span>
-                    <span class="status-indicator" id="apiStatusDot"></span>
-                </button>
-                <button type="button" class="btn-theme-toggle" id="btnThemeToggle" title="Alternar Modo Noturno / Claro">
-                    <i class="fa-solid fa-moon" id="themeIcon"></i>
-                </button>
-                <button type="button" class="btn-logout" id="btnLogout" title="Sair do Sistema">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span>Sair</span>
-                </button>
-            </div>
+{% block extra_css %}
+<style>
+    /* ── Estilos do Processador de NF (Espelhado do Farm-Fin) ── */
+    .nf-page-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+
+    /* Upload Zone */
+    .upload-zone-card {
+        background: var(--bg-surface);
+        border: 2px dashed var(--border-color);
+        border-radius: var(--radius-2xl);
+        padding: clamp(var(--space-6), 5vw, var(--space-10));
+        text-align: center;
+        transition: all var(--transition-normal);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        box-shadow: var(--clay-shadow-sm);
+    }
+
+    .upload-zone-card:hover, .upload-zone-card.dragging {
+        border-color: var(--color-primary-500);
+        background: var(--color-primary-50);
+        transform: translateY(-2px);
+    }
+
+    [data-theme="dark"] .upload-zone-card:hover, [data-theme="dark"] .upload-zone-card.dragging {
+        background: rgba(99, 102, 241, 0.08);
+    }
+
+    .upload-icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: var(--radius-full);
+        background: var(--color-primary-100);
+        color: var(--color-primary-600);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        margin-bottom: var(--space-2);
+        box-shadow: var(--clay-shadow-primary);
+    }
+
+    .upload-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .upload-subtitle {
+        font-size: 13.5px;
+        color: var(--text-secondary);
+        max-width: 460px;
+    }
+
+    .upload-file-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--color-primary-100);
+        color: var(--color-primary-800);
+        padding: 8px 16px;
+        border-radius: var(--radius-full);
+        font-size: 13.5px;
+        font-weight: 600;
+        margin-top: var(--space-2);
+    }
+
+    [data-theme="dark"] .upload-file-chip {
+        background: rgba(99, 102, 241, 0.25);
+        color: #c7d2fe;
+    }
+
+    /* Toolbar de Exemplo e Ações */
+    .upload-actions-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+        margin-top: var(--space-2);
+    }
+
+    /* Processing Box */
+    .processing-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-xl);
+        padding: var(--space-8);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4);
+        box-shadow: var(--clay-shadow-md);
+    }
+
+    .processing-spinner {
+        font-size: 36px;
+        color: var(--color-primary-600);
+    }
+
+    /* Review Grid */
+    .review-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-6);
+    }
+
+    @media (max-width: 960px) {
+        .review-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .entity-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-xl);
+        padding: var(--space-5);
+        box-shadow: var(--clay-shadow-md);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .entity-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: var(--space-3);
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .entity-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .entity-field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-3);
+    }
+
+    .entity-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .field-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .field-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    .field-value.amount {
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--color-primary-600);
+    }
+
+    /* Products Tag Container */
+    .products-list-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-height: 140px;
+        overflow-y: auto;
+        padding: 4px;
+    }
+
+    .product-tag {
+        background: var(--bg-surface-2);
+        border: 1px solid var(--border-color);
+        padding: 4px 10px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    /* Review Action Bottom Bar */
+    .review-action-dock {
+        position: sticky;
+        bottom: 20px;
+        z-index: 80;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-4) var(--space-6);
+        box-shadow: var(--clay-shadow-lg);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    /* JSON Box */
+    .json-code-box {
+        background: #0f172a;
+        color: #f8fafc;
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 1.5;
+        max-height: 320px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        border: 1px solid #1e293b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nf-page-grid">
+    <!-- TÍTULO DA PÁGINA (ESPELHADO DO FARM-FIN) -->
+    <div class="page-title-section">
+        <div>
+            <h1 class="page-title">Processador de Notas Fiscais (IA)</h1>
+            <p class="page-description">Extraia dados de DANFEs/PDFs com LLM e faça a análise e lançamento automático no banco de dados.</p>
         </div>
-    </header>
-
-    <main class="main-content">
-        <div class="page-container">
-            <div class="hero-section">
-                <h1 class="page-title">Extração & Análise de Notas Fiscais (N2)</h1>
-                <p class="page-subtitle">Extraia dados da NF via IA e valide automaticamente Fornecedor, Faturado e Despesas no Banco de Dados</p>
-            </div>
-
-            <!-- 1ª ETAPA: Upload e Extração -->
-            <section class="card upload-card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                        <span>1ª ETAPA: Upload do Arquivo PDF</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <label class="input-label" for="pdfInput">Selecione o arquivo PDF da nota fiscal</label>
-                    
-                    <div class="drop-zone" id="dropZone">
-                        <input type="file" id="pdfInput" accept=".pdf,application/pdf" class="file-input-hidden">
-                        <div class="drop-zone-prompt">
-                            <i class="fa-regular fa-file-pdf drop-icon"></i>
-                            <div class="drop-text">
-                                <span class="drop-title">Arraste seu arquivo PDF aqui ou</span>
-                                <button type="button" class="btn-browse" id="btnBrowse">Escolher arquivo</button>
-                            </div>
-                            <span class="drop-hint">Formatos aceitos: PDF (DANFE / NF-e / Contas a Pagar)</span>
-                        </div>
-                    </div>
-
-                    <div class="selected-file-card hidden" id="fileInfoCard">
-                        <div class="file-details">
-                            <div class="file-icon-wrapper">
-                                <i class="fa-solid fa-file-pdf"></i>
-                            </div>
-                            <div class="file-meta">
-                                <span class="file-name" id="fileNameDisplay">NFE.pdf</span>
-                                <span class="file-size" id="fileSizeDisplay">0.00 MB</span>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-remove-file" id="btnRemoveFile" title="Remover arquivo">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-
-                    <div class="sample-actions">
-                        <span class="sample-label">Ou teste com PDFs de exemplo:</span>
-                        <button type="button" class="btn-sample" id="btnSampleManutencao">
-                            <i class="fa-solid fa-wrench"></i> Exemplo do PDF: Peças & Máquinas (DANFE 000.084.682)
-                        </button>
-                        <button type="button" class="btn-sample" id="btnSampleInsumos">
-                            <i class="fa-solid fa-seedling"></i> Exemplo: Insumos Agrícolas (DANFE 000.054.121)
-                        </button>
-                    </div>
-
-                    <button type="button" class="btn-extract" id="btnExtract" disabled>
-                        <span class="btn-text">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> EXTRAIR DADOS DA NOTA
-                        </span>
-                        <span class="spinner hidden" id="btnSpinner">
-                            <i class="fa-solid fa-circle-notch fa-spin"></i> Processando com IA...
-                        </span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- RESULTADOS DA 1ª ETAPA -->
-            <section class="card results-card hidden" id="resultsSection">
-                <div class="card-header results-header">
-                    <div class="card-title">
-                        <i class="fa-solid fa-file-lines"></i>
-                        <span>Dados Extraídos da Nota</span>
-                    </div>
-                    <div class="source-badge" id="extractionSourceBadge">
-                        <i class="fa-solid fa-bolt"></i> Extraído com IA
-                    </div>
-                </div>
-
-                <div class="card-body">
-                    <div class="tabs-nav" role="tablist">
-                        <button type="button" class="tab-btn active" id="tabFormattedBtn" data-target="tabFormatted">
-                            <i class="fa-solid fa-table-cells-large"></i> Visualização Formatada
-                        </button>
-                        <button type="button" class="tab-btn" id="tabJsonBtn" data-target="tabJson">
-                            <i class="fa-solid fa-code"></i> JSON
-                        </button>
-                    </div>
-
-                    <div class="tab-content active" id="tabFormatted">
-                        <div class="classification-banner" id="classificationBanner">
-                            <div class="banner-icon">
-                                <i class="fa-solid fa-tag"></i>
-                            </div>
-                            <div class="banner-body">
-                                <span class="banner-label">Classificação da Despesa (Interpretado pelo Gemini)</span>
-                                <h2 class="banner-category" id="formattedCategoria">MANUTENÇÃO E OPERAÇÃO</h2>
-                                <div class="detected-tags-container">
-                                    <span class="tags-label">Termos detectados que embasaram a classificação:</span>
-                                    <div class="tags-list" id="formattedTermos">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="info-grid">
-                            <div class="info-card">
-                                <div class="info-card-header">
-                                    <i class="fa-solid fa-building"></i>
-                                    <h3>Fornecedor / Emitente</h3>
-                                </div>
-                                <div class="info-card-body">
-                                    <div class="field-item">
-                                        <span class="field-label">Razão Social:</span>
-                                        <span class="field-value highlight" id="formattedEmitente">-</span>
-                                    </div>
-                                    <div class="field-item">
-                                        <span class="field-label">Nome Fantasia:</span>
-                                        <span class="field-value" id="formattedFantasia">-</span>
-                                    </div>
-                                    <div class="field-item">
-                                        <span class="field-label">CNPJ:</span>
-                                        <span class="field-value mono" id="formattedCnpjEmitente">-</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-card-header">
-                                    <i class="fa-solid fa-user-check"></i>
-                                    <h3>Faturado / Destinatário</h3>
-                                </div>
-                                <div class="info-card-body">
-                                    <div class="field-item">
-                                        <span class="field-label">Nome Completo:</span>
-                                        <span class="field-value highlight" id="formattedDestinatario">-</span>
-                                    </div>
-                                    <div class="field-item">
-                                        <span class="field-label">CPF / CNPJ:</span>
-                                        <span class="field-value mono" id="formattedCpfDestinatario">-</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="info-card">
-                                <div class="info-card-header">
-                                    <i class="fa-solid fa-receipt"></i>
-                                    <h3>Dados da Nota Fiscal</h3>
-                                </div>
-                                <div class="info-card-body">
-                                    <div class="field-item">
-                                        <span class="field-label">Número da NF:</span>
-                                        <span class="field-value bold" id="formattedNumeroNf">-</span>
-                                    </div>
-                                    <div class="field-item">
-                                        <span class="field-label">Data de Emissão:</span>
-                                        <span class="field-value" id="formattedDataEmissao">-</span>
-                                    </div>
-                                    <div class="field-item">
-                                        <span class="field-label">Data de Vencimento:</span>
-                                        <span class="field-value" id="formattedDataVencimento">-</span>
-                                    </div>
-                                    <div class="field-item">
-                                        <span class="field-label">Valor Total:</span>
-                                        <span class="field-value valor-total" id="formattedValorTotal">-</span>
-                                    </div>
-                                    <div class="field-item">
-                                        <span class="field-label">Parcelas:</span>
-                                        <span class="field-value" id="formattedParcelas">1 parcela</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="info-card full-width">
-                                <div class="info-card-header">
-                                    <i class="fa-solid fa-boxes-stacked"></i>
-                                    <h3>Descrição dos Produtos / Serviços</h3>
-                                </div>
-                                <div class="info-card-body">
-                                    <p class="products-description" id="formattedDescricaoProdutos">-</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tab-content" id="tabJson">
-                        <div class="json-tab-header">
-                            <div class="json-tab-title">
-                                <i class="fa-solid fa-code"></i> Dados em JSON
-                            </div>
-                            <div class="json-actions">
-                                <button type="button" class="btn-copy-json" id="btnCopyJson">
-                                    <i class="fa-regular fa-copy"></i> Copiar JSON
-                                </button>
-                                <button type="button" class="btn-download-json" id="btnDownloadJson">
-                                    <i class="fa-solid fa-download"></i> Baixar .JSON
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="code-container">
-                            <pre><code id="jsonCodeDisplay" class="json-code">// Carregue uma nota fiscal e clique em Extrair Dados para visualizar o JSON</code></pre>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ========================================================================= -->
-            <!-- 2ª ETAPA: ANÁLISE NO BANCO DE DADOS E LANÇAMENTO AUTOMÁTICO               -->
-            <!-- ========================================================================= -->
-            <section class="etapa2-container hidden" id="etapa2Section">
-                <div class="etapa2-header">
-                    <div class="etapa2-title-group">
-                        <h3><i class="fa-solid fa-database"></i> 2ª ETAPA: Análise & Validação no Banco de Dados</h3>
-                        <p>Verificação de existência de Fornecedor, Faturado e Despesa conforme requisitos do projeto N2</p>
-                    </div>
-                    <button type="button" class="btn-api-config" id="btnReconsultarBanco" title="Reconsultar status no banco">
-                        <i class="fa-solid fa-arrows-rotate"></i> Reconsultar Banco
-                    </button>
-                </div>
-                <div class="etapa2-body">
-                    <!-- Cards de Verificação de Existência (Modelo Exato da Página 2) -->
-                    <div class="analysis-grid">
-                        <!-- FORNECEDOR -->
-                        <div class="analysis-card">
-                            <div class="analysis-card-title"><i class="fa-solid fa-building"></i> FORNECEDOR</div>
-                            <div class="analysis-entity-name" id="etapa2FornecedorNome">-</div>
-                            <div class="analysis-entity-doc" id="etapa2FornecedorDoc">CNPJ: -</div>
-                            <div id="etapa2FornecedorBadge" class="db-status-badge">CONSULTANDO...</div>
-                        </div>
-
-                        <!-- FATURADO -->
-                        <div class="analysis-card">
-                            <div class="analysis-card-title"><i class="fa-solid fa-user-check"></i> FATURADO</div>
-                            <div class="analysis-entity-name" id="etapa2FaturadoNome">-</div>
-                            <div class="analysis-entity-doc" id="etapa2FaturadoDoc">CPF: -</div>
-                            <div id="etapa2FaturadoBadge" class="db-status-badge">CONSULTANDO...</div>
-                        </div>
-
-                        <!-- DESPESA -->
-                        <div class="analysis-card">
-                            <div class="analysis-card-title"><i class="fa-solid fa-tag"></i> DESPESA</div>
-                            <div class="analysis-entity-name" id="etapa2DespesaNome">-</div>
-                            <div class="analysis-entity-doc" id="etapa2DespesaTipo">CLASSIFICAÇÃO: DESPESA</div>
-                            <div id="etapa2DespesaBadge" class="db-status-badge">CONSULTANDO...</div>
-                        </div>
-                    </div>
-
-                    <!-- Caixa de Ações pós-verificação -->
-                    <div class="etapa2-actions-box">
-                        <p class="etapa2-actions-desc">
-                            <strong>Ações Automáticas pós-verificação:</strong><br>
-                            1. Criar novo Fornecedor (se for o caso) &nbsp;|&nbsp;
-                            2. Criar novo Faturado (se for o caso) &nbsp;|&nbsp;
-                            3. Criar nova Despesa (se for o caso) &nbsp;|&nbsp;
-                            4. Criar o Movimento de Contas e sua Parcela única &nbsp;|&nbsp;
-                            5. Informar ao usuário que o registro foi lançado com sucesso.
-                        </p>
-                        <button type="button" class="btn-lancar-banco" id="btnLancarBanco">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                            <span id="btnLancarText">LANÇAR REGISTRO NO BANCO DE DADOS (2ª ETAPA)</span>
-                        </button>
-                    </div>
-
-                    <!-- Card de Sucesso -->
-                    <div id="etapa2SuccessCard" class="success-launch-card hidden">
-                        <div class="success-icon"><i class="fa-solid fa-circle-check"></i></div>
-                        <div class="success-details">
-                            <h4>REGISTRO LANÇADO COM SUCESSO!</h4>
-                            <p id="successMessageText">O movimento de contas a pagar e sua parcela foram gravados no banco de dados.</p>
-                            <div class="success-tags" id="successTagsContainer">
-                                <!-- Tags dinâmicas -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </main>
-
-    <!-- Modal de API Gemini -->
-    <div class="modal-overlay hidden" id="apiModal">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-key"></i> Configuração da API Google Gemini</h3>
-                <button type="button" class="btn-close-modal" id="btnCloseModal">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">
-                    Insira sua chave de API gratuita do Google Gemini para processamento em tempo real online. Se preferir não inserir agora, o sistema usará o modo de processamento inteligente heurístico local.
-                </p>
-                <div class="form-group">
-                    <label for="apiKeyInput">Gemini API Key:</label>
-                    <div class="input-with-icon">
-                        <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="form-control">
-                        <button type="button" class="btn-toggle-visibility" id="btnToggleKey">
-                            <i class="fa-regular fa-eye"></i>
-                        </button>
-                    </div>
-                    <small class="form-hint">
-                        Obtenha gratuitamente em <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>.
-                    </small>
-                </div>
-                <div class="api-notice" id="apiNoticeBox">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <span>A chave fica armazenada apenas no seu navegador durante o uso.</span>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-modal-cancel" id="btnCancelKey">Cancelar</button>
-                <button type="button" class="btn-modal-save" id="btnSaveKey">Salvar Chave</button>
-            </div>
+        <div style="display: flex; gap: 8px;">
+            <button type="button" class="clay-btn clay-btn-outline" id="btnCarregarExemplo" title="Carregar DANFE de Teste do Professor">
+                <i class="fa-solid fa-file-pdf" style="color: var(--color-danger);"></i>
+                Carregar DANFE Professor
+            </button>
+            <button type="button" class="clay-btn clay-btn-secondary" id="btnLimparTudo">
+                <i class="fa-solid fa-rotate-left"></i>
+                Limpar
+            </button>
         </div>
     </div>
 
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- ZONA DE UPLOAD ARRASTE E SOLTE -->
+    <div class="upload-zone-card" id="dropZone">
+        <input type="file" id="pdfFileInput" accept="application/pdf" style="display: none;">
+        <div class="upload-icon-circle">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+        </div>
+        <div class="upload-title">Arraste o PDF da Nota Fiscal aqui</div>
+        <div class="upload-subtitle">Suporta DANFE, NF-e de Insumos e Peças Agrícolas, Manutenção e Serviços. Clique para selecionar do seu computador.</div>
+        
+        <div id="fileSelectedDisplay" style="display: none;">
+            <span class="upload-file-chip">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span id="fileNameText">arquivo.pdf</span>
+                <i class="fa-solid fa-xmark" id="btnRemoveFile" style="cursor: pointer; margin-left: 6px;"></i>
+            </span>
+        </div>
 
-    <script src="/static/js/main.js"></script>
-</body>
-</html>
+        <div style="margin-top: 12px;">
+            <button type="button" class="clay-btn clay-btn-primary clay-btn-lg" id="btnExtrairDados">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                Extrair Dados com IA
+            </button>
+        </div>
+    </div>
+
+    <!-- ESTADO DE PROCESSAMENTO (SPINNER + TEMPO) -->
+    <div class="processing-card" id="processingCard" style="display: none;">
+        <div class="processing-spinner">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h3 style="font-size: 18px; font-weight: 700;">Processando documento fiscal...</h3>
+            <p style="font-size: 14px; color: var(--text-secondary);">Analisando OCR, extraindo entidades e classificando despesas.</p>
+            <small style="font-family: var(--font-mono); color: var(--color-primary-600); font-weight: 700;" id="elapsedTimerText">0.0s decorridos</small>
+        </div>
+    </div>
+
+    <!-- RESULTADOS DA EXTRAÇÃO & ANÁLISE DE BANCO (2ª ETAPA) -->
+    <div id="resultsContainer" style="display: none; flex-direction: column; gap: var(--space-6);">
+        <!-- BANNER DE STATUS DA 2ª ETAPA -->
+        <div class="clay-card" style="background: var(--surface-gradient); border-left: 4px solid var(--color-primary-600);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--color-primary-100); color: var(--color-primary-600); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                        <i class="fa-solid fa-database"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary);">Análise de Banco de Dados Concluída</h3>
+                        <p style="font-size: 13px; color: var(--text-secondary);">Entidades verificadas no banco. Clique em <strong>Lançar no Banco</strong> para gravar em 1 clique.</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <span class="badge badge--info" id="origemProcessamentoBadge">
+                        <i class="fa-solid fa-microchip"></i> Gemini AI / Heurística
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRID DE CARDS DAS ENTIDADES (ESPELHADO DO FARM-FIN NOTAREVIEWFORM) -->
+        <div class="review-grid">
+            <!-- FORNECEDOR / EMITENTE -->
+            <div class="entity-card">
+                <div class="entity-header">
+                    <span class="entity-title">
+                        <i class="fa-solid fa-building" style="color: var(--color-primary-600);"></i>
+                        Fornecedor (Emitente)
+                    </span>
+                    <span class="badge badge--warning" id="statusFornecedorBadge">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Verificando
+                    </span>
+                </div>
+                <div class="entity-field-grid">
+                    <div class="entity-field" style="grid-column: span 2;">
+                        <span class="field-label">Razão Social</span>
+                        <span class="field-value" id="valFornecedorRazao">-</span>
+                    </div>
+                    <div class="entity-field">
+                        <span class="field-label">Nome Fantasia</span>
+                        <span class="field-value" id="valFornecedorFantasia">-</span>
+                    </div>
+                    <div class="entity-field">
+                        <span class="field-label">CNPJ</span>
+                        <span class="field-value" id="valFornecedorCnpj">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FATURADO / DESTINATÁRIO -->
+            <div class="entity-card">
+                <div class="entity-header">
+                    <span class="entity-title">
+                        <i class="fa-solid fa-user-tag" style="color: var(--color-primary-600);"></i>
+                        Faturado (Destinatário)
+                    </span>
+                    <span class="badge badge--warning" id="statusFaturadoBadge">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Verificando
+                    </span>
+                </div>
+                <div class="entity-field-grid">
+                    <div class="entity-field" style="grid-column: span 2;">
+                        <span class="field-label">Nome Completo</span>
+                        <span class="field-value" id="valFaturadoNome">-</span>
+                    </div>
+                    <div class="entity-field" style="grid-column: span 2;">
+                        <span class="field-label">CPF / CNPJ</span>
+                        <span class="field-value" id="valFaturadoCpf">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DADOS DA NOTA FISCAL -->
+            <div class="entity-card">
+                <div class="entity-header">
+                    <span class="entity-title">
+                        <i class="fa-solid fa-file-invoice-dollar" style="color: var(--color-primary-600);"></i>
+                        Dados da Nota Fiscal
+                    </span>
+                </div>
+                <div class="entity-field-grid">
+                    <div class="entity-field">
+                        <span class="field-label">Número da NF</span>
+                        <span class="field-value" id="valNotaNumero">-</span>
+                    </div>
+                    <div class="entity-field">
+                        <span class="field-label">Data de Emissão</span>
+                        <span class="field-value" id="valNotaEmissao">-</span>
+                    </div>
+                    <div class="entity-field">
+                        <span class="field-label">Data de Vencimento</span>
+                        <span class="field-value" id="valNotaVencimento">-</span>
+                    </div>
+                    <div class="entity-field">
+                        <span class="field-label">Valor Total</span>
+                        <span class="field-value amount" id="valNotaValor">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CLASSIFICAÇÃO DA DESPESA (9 CATEGORIAS OFICIAIS) -->
+            <div class="entity-card">
+                <div class="entity-header">
+                    <span class="entity-title">
+                        <i class="fa-solid fa-tags" style="color: var(--color-primary-600);"></i>
+                        Classificação da Despesa
+                    </span>
+                    <span class="badge badge--warning" id="statusDespesaBadge">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Verificando
+                    </span>
+                </div>
+                <div class="entity-field-grid">
+                    <div class="entity-field" style="grid-column: span 2;">
+                        <span class="field-label">Categoria Oficial Sugerida</span>
+                        <span class="field-value" id="valClassificacaoNome" style="font-size: 15px; font-weight: 700; color: var(--color-primary-700);">-</span>
+                    </div>
+                    <div class="entity-field" style="grid-column: span 2;">
+                        <span class="field-label">Termos Detectados no Documento</span>
+                        <span class="field-value" id="valTermosDetectados" style="font-size: 12.5px; color: var(--text-secondary);">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LISTA DE PRODUTOS / SERVIÇOS -->
+        <div class="entity-card">
+            <div class="entity-header">
+                <span class="entity-title">
+                    <i class="fa-solid fa-boxes-stacked" style="color: var(--color-primary-600);"></i>
+                    Descrição dos Produtos / Serviços Extraídos
+                </span>
+                <span class="badge badge--neutral" id="produtosCountBadge">0 itens</span>
+            </div>
+            <div class="products-list-wrapper" id="produtosListContainer">
+                <!-- Chips de produtos injetados via JS -->
+            </div>
+        </div>
+
+        <!-- PARCELAS GERADAS -->
+        <div class="entity-card">
+            <div class="entity-header">
+                <span class="entity-title">
+                    <i class="fa-solid fa-calendar-days" style="color: var(--color-primary-600);"></i>
+                    Parcelas de Contas a Pagar
+                </span>
+                <span class="badge badge--info" id="parcelasCountBadge">1 Parcela</span>
+            </div>
+            <div class="table-card" style="margin-top: 8px;">
+                <table class="styled-table" id="tabelaParcelasPreview">
+                    <thead>
+                        <tr>
+                            <th>Parcela</th>
+                            <th>Identificação Única</th>
+                            <th>Data de Vencimento</th>
+                            <th>Valor da Parcela</th>
+                            <th>Status Inicial</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoParcelasPreview">
+                        <!-- Injetado via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- VISUALIZADOR DO JSON ESTRUTURADO -->
+        <div class="entity-card">
+            <div class="entity-header">
+                <span class="entity-title">
+                    <i class="fa-solid fa-code" style="color: var(--color-primary-600);"></i>
+                    JSON Estruturado da Extração
+                </span>
+                <button type="button" class="clay-btn clay-btn-sm clay-btn-outline" id="btnToggleJson">
+                    <i class="fa-solid fa-chevron-down" id="jsonToggleIcon"></i> Alternar Visualização
+                </button>
+            </div>
+            <pre class="json-code-box" id="jsonDisplayCode">{ "status": "aguardando extração" }</pre>
+        </div>
+
+        <!-- BARRA FLUTUANTE DE AÇÕES (DOCK INFERIOR) -->
+        <div class="review-action-dock">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Ações de Lançamento:</span>
+                <span id="lancamentoStatusBadge" class="badge badge--neutral">Pronto para lançar</span>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="clay-btn clay-btn-outline" id="btnCopiarJson">
+                    <i class="fa-regular fa-copy"></i> Copiar JSON
+                </button>
+                <button type="button" class="clay-btn clay-btn-outline" id="btnBaixarJson">
+                    <i class="fa-solid fa-download"></i> Baixar JSON
+                </button>
+                <button type="button" class="clay-btn clay-btn-primary" id="btnLancarBanco">
+                    <i class="fa-solid fa-bolt"></i> LANÇAR NO BANCO (1 Clique)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/main.js"></script>
+{% endblock %}
