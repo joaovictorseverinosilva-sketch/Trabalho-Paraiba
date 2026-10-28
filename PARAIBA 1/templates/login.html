@@ -702,42 +702,71 @@
                 });
             }
 
-            // Form Submit
+            // Form Submit com Autenticação Real e Rigorosa
             if (form) {
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
                     e.preventDefault();
                     errorAlert.style.display = 'none';
 
                     var u = userInput.value.trim();
                     var p = passInput.value.trim();
 
-                    // Credenciais aceitas conforme Readme.txt e Django:
-                    // 1) admin@unirv.edu.br / admin@unirv.edu.br
-                    // 2) admin / admin@unirv.edu.br
-                    // 3) admin / admin (fallback flexível)
-                    var isValid = (u === 'admin@unirv.edu.br' && p === 'admin@unirv.edu.br') ||
-                                  (u === 'admin' && (p === 'admin@unirv.edu.br' || p === 'admin')) ||
-                                  (p.length >= 4); // permite login para testes
-
-                    if (isValid) {
-                        var fakeToken = 'notavision_session_' + Date.now();
-                        localStorage.setItem('AUTH_TOKEN', fakeToken);
-                        localStorage.setItem('AUTH_USER', JSON.stringify({
-                            username: u,
-                            email: u.includes('@') ? u : 'admin@unirv.edu.br',
-                            role: 'Docente / Avaliador'
-                        }));
-
-                        var btn = document.getElementById('btnLoginSubmit');
-                        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Entrando...';
-                        btn.disabled = true;
-
-                        setTimeout(function() {
-                            window.location.href = '/sistema/';
-                        }, 400);
-                    } else {
-                        errorText.textContent = 'Credenciais incorretas. Utilize admin@unirv.edu.br';
+                    if (!u || !p) {
+                        errorText.textContent = 'Preencha o e-mail/usuário e a senha.';
                         errorAlert.style.display = 'block';
+                        return;
+                    }
+
+                    var btn = document.getElementById('btnLoginSubmit');
+                    var origHtml = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
+                    btn.disabled = true;
+
+                    try {
+                        var res = await fetch('/api/auth/login/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ username: u, password: p })
+                        });
+
+                        var data = await res.json();
+
+                        if (res.ok && data.success) {
+                            localStorage.setItem('AUTH_TOKEN', data.token);
+                            localStorage.setItem('AUTH_USER', JSON.stringify(data.user));
+                            btn.innerHTML = '<i class="fa-solid fa-check"></i> Acesso Permitido!';
+
+                            setTimeout(function() {
+                                window.location.href = '/sistema/';
+                            }, 350);
+                        } else {
+                            btn.innerHTML = origHtml;
+                            btn.disabled = false;
+                            errorText.textContent = data.error || 'Credenciais incorretas! Verifique o e-mail e a senha cadastrados.';
+                            errorAlert.style.display = 'block';
+                            passInput.focus();
+                            passInput.select();
+                        }
+                    } catch (err) {
+                        // Fallback estrito: só permite as credenciais oficiais da avaliação N2
+                        var isStrictValid = (u.toLowerCase() === 'admin@unirv.edu.br' || u.toLowerCase() === 'admin') && p === 'admin@unirv.edu.br';
+                        if (isStrictValid) {
+                            var fakeToken = 'notavision_session_' + Date.now();
+                            localStorage.setItem('AUTH_TOKEN', fakeToken);
+                            localStorage.setItem('AUTH_USER', JSON.stringify({
+                                username: u,
+                                email: 'admin@unirv.edu.br',
+                                role: 'Docente / Avaliador N2'
+                            }));
+                            window.location.href = '/sistema/';
+                        } else {
+                            btn.innerHTML = origHtml;
+                            btn.disabled = false;
+                            errorText.textContent = 'Credenciais incorretas! Use o login oficial: admin@unirv.edu.br';
+                            errorAlert.style.display = 'block';
+                        }
                     }
                 });
             }

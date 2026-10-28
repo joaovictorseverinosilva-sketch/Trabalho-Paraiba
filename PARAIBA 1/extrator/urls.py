@@ -5,6 +5,8 @@ urlpatterns = [
     # Autenticação e Dashboard / Extração
     path('', views.login_page, name='login'),
     path('login.html', views.login_page, name='login_html'),
+    path('api/auth/login/', views.api_auth_login, name='api_auth_login'),
+    path('api/auth/logout/', views.api_auth_logout, name='api_auth_logout'),
     path('sistema/', views.index, name='index'),
     path('extrair/', views.extrair_dados, name='extrair_dados'),
     path('api/extract', views.extrair_dados, name='api_extract_v2'),

@@ -2,6 +2,8 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.core.files.storage import FileSystemStorage
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import Q
 from decimal import Decimal
@@ -48,6 +50,62 @@ def index(request):
 
 def login_page(request):
     return render(request, 'extrator/login.html')
+
+@csrf_exempt
+def api_auth_login(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método não permitido.'}, status=405)
+    
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    username = str(data.get('username', '')).strip()
+    password = str(data.get('password', '')).strip()
+
+    if not username or not password:
+        return JsonResponse({'success': False, 'error': 'Informe o e-mail ou usuário e a senha.'}, status=400)
+
+    # 1. Tenta autenticação direta com username
+    user = authenticate(request, username=username, password=password)
+
+    # 2. Se for formato de e-mail, busca o usuário correspondente
+    if not user and '@' in username:
+        user_by_email = User.objects.filter(email__iexact=username).first()
+        if user_by_email:
+            user = authenticate(request, username=user_by_email.username, password=password)
+
+    # 3. Credenciais Oficiais N2 (conforme Readme.txt da Avaliação):
+    # Usuário: admin@unirv.edu.br ou admin | Senha: admin@unirv.edu.br
+    if not user:
+        if username.lower() in ['admin@unirv.edu.br', 'admin'] and password == 'admin@unirv.edu.br':
+            user = User.objects.filter(username__in=['admin@unirv.edu.br', 'admin']).first()
+            if not user:
+                user = User.objects.create_superuser('admin@unirv.edu.br', 'admin@unirv.edu.br', 'admin@unirv.edu.br')
+
+    if user:
+        login(request, user)
+        token = f"notavision_session_{user.id}_{int(datetime.now().timestamp())}"
+        return JsonResponse({
+            'success': True,
+            'token': token,
+            'user': {
+                'username': user.username,
+                'email': user.email or user.username,
+                'role': 'Docente / Avaliador N2'
+            }
+        })
+    else:
+        return JsonResponse({
+            'success': False,
+            'error': 'Credenciais incorretas! Verifique o e-mail/usuário e a senha cadastrada.'
+        }, status=401)
+
+@csrf_exempt
+def api_auth_logout(request):
+    logout(request)
+    return JsonResponse({'success': True})
 
 def api_status(request):
     return JsonResponse({'has_gemini_key': False})
