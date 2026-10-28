@@ -44,7 +44,7 @@ def parse_date_safe(date_str):
 
 # --- VIEWS DA ETAPA 1 E DASHBOARD ---
 def index(request):
-    return render(request, 'extrator/index.html')
+    return render(request, 'extrator/index.html', {'active_page': 'sistema'})
 
 def login_page(request):
     return render(request, 'extrator/login.html')
@@ -437,16 +437,16 @@ def lancar_movimento_api(request):
 # =========================================================================
 
 def pessoas_view(request):
-    return render(request, 'extrator/pessoas.html')
+    return render(request, 'extrator/pessoas.html', {'active_page': 'pessoas'})
 
 def pessoas_api_list(request):
-    busca = request.GET.get('q', '').strip()
-    todos = request.GET.get('todos', '').strip()
+    busca = (request.GET.get('busca') or request.GET.get('q', '')).strip()
+    todos = (request.GET.get('todos') or ('1' if request.GET.get('modo_todos') == 'true' else '')).strip()
     sort_col = request.GET.get('sort', 'razao_social')
     sort_dir = request.GET.get('dir', 'asc')
 
     if not busca and not todos:
-        return JsonResponse({'data': [], 'mensagem': 'Tabela vazia. Utilize a busca ou clique em TODOS para carregar os registros.'})
+        return JsonResponse({'sucesso': True, 'data': [], 'mensagem': 'Tabela vazia. Utilize a busca ou clique em TODOS para carregar os registros.'})
 
     qs = Pessoa.objects.all()
 
@@ -487,7 +487,7 @@ def pessoas_api_list(request):
             'criado_em': p.criado_em.strftime('%d/%m/%Y %H:%M')
         })
 
-    return JsonResponse({'data': data, 'count': len(data)})
+    return JsonResponse({'sucesso': True, 'success': True, 'data': data, 'count': len(data)})
 
 @csrf_exempt
 def pessoas_api_save(request):
@@ -526,7 +526,7 @@ def pessoas_api_save(request):
         )
         msg = 'Pessoa cadastrada com sucesso!'
 
-    return JsonResponse({'success': True, 'message': msg, 'id': pessoa.id})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': msg, 'mensagem': msg, 'id': pessoa.id})
 
 @csrf_exempt
 def pessoas_api_delete(request, id):
@@ -534,7 +534,7 @@ def pessoas_api_delete(request, id):
         return JsonResponse({'error': 'Método deve ser POST'}, status=405)
     pessoa = get_object_or_404(Pessoa, id=id)
     pessoa.inativar()
-    return JsonResponse({'success': True, 'message': f'Pessoa #{id} inativada com sucesso (Exclusão Lógica).'})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': f'Pessoa #{id} inativada com sucesso (Exclusão Lógica).', 'mensagem': f'Pessoa #{id} inativada com sucesso.'})
 
 @csrf_exempt
 def pessoas_api_reativar(request, id):
@@ -542,7 +542,7 @@ def pessoas_api_reativar(request, id):
         return JsonResponse({'error': 'Método deve ser POST'}, status=405)
     pessoa = get_object_or_404(Pessoa, id=id)
     pessoa.reativar()
-    return JsonResponse({'success': True, 'message': f'Pessoa #{id} reativada com sucesso.'})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': f'Pessoa #{id} reativada com sucesso.', 'mensagem': f'Pessoa #{id} reativada com sucesso.'})
 
 
 # =========================================================================
@@ -550,16 +550,16 @@ def pessoas_api_reativar(request, id):
 # =========================================================================
 
 def classificacoes_view(request):
-    return render(request, 'extrator/classificacoes.html')
+    return render(request, 'extrator/classificacoes.html', {'active_page': 'classificacoes'})
 
 def classificacoes_api_list(request):
-    busca = request.GET.get('q', '').strip()
-    todos = request.GET.get('todos', '').strip()
+    busca = (request.GET.get('busca') or request.GET.get('q', '')).strip()
+    todos = (request.GET.get('todos') or ('1' if request.GET.get('modo_todos') == 'true' else '')).strip()
     sort_col = request.GET.get('sort', 'descricao')
     sort_dir = request.GET.get('dir', 'asc')
 
     if not busca and not todos:
-        return JsonResponse({'data': [], 'mensagem': 'Tabela vazia. Utilize a busca ou clique em TODOS para carregar os registros.'})
+        return JsonResponse({'sucesso': True, 'data': [], 'mensagem': 'Tabela vazia. Utilize a busca ou clique em TODOS para carregar os registros.'})
 
     qs = Classificacao.objects.all()
 
@@ -587,7 +587,7 @@ def classificacoes_api_list(request):
         'criado_em': c.criado_em.strftime('%d/%m/%Y')
     } for c in qs]
 
-    return JsonResponse({'data': data, 'count': len(data)})
+    return JsonResponse({'sucesso': True, 'success': True, 'data': data, 'count': len(data)})
 
 @csrf_exempt
 def classificacoes_api_save(request):
@@ -620,7 +620,7 @@ def classificacoes_api_save(request):
         )
         msg = 'Classificação cadastrada com sucesso!'
 
-    return JsonResponse({'success': True, 'message': msg, 'id': classif.id})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': msg, 'mensagem': msg, 'id': classif.id})
 
 @csrf_exempt
 def classificacoes_api_delete(request, id):
@@ -628,7 +628,7 @@ def classificacoes_api_delete(request, id):
         return JsonResponse({'error': 'Método deve ser POST'}, status=405)
     classif = get_object_or_404(Classificacao, id=id)
     classif.inativar()
-    return JsonResponse({'success': True, 'message': f'Classificação #{id} inativada com sucesso (Exclusão Lógica).'})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': f'Classificação #{id} inativada com sucesso (Exclusão Lógica).', 'mensagem': f'Classificação #{id} inativada.'})
 
 @csrf_exempt
 def classificacoes_api_reativar(request, id):
@@ -636,7 +636,7 @@ def classificacoes_api_reativar(request, id):
         return JsonResponse({'error': 'Método deve ser POST'}, status=405)
     classif = get_object_or_404(Classificacao, id=id)
     classif.reativar()
-    return JsonResponse({'success': True, 'message': f'Classificação #{id} reativada com sucesso.'})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': f'Classificação #{id} reativada com sucesso.', 'mensagem': f'Classificação #{id} reativada.'})
 
 
 # =========================================================================
@@ -644,7 +644,7 @@ def classificacoes_api_reativar(request, id):
 # =========================================================================
 
 def contas_view(request):
-    return render(request, 'extrator/contas.html')
+    return render(request, 'extrator/contas.html', {'active_page': 'contas'})
 
 def contas_api_list(request):
     busca = request.GET.get('q', '').strip()
@@ -705,7 +705,7 @@ def contas_api_list(request):
             'status': m.status
         })
 
-    return JsonResponse({'data': data, 'count': len(data)})
+    return JsonResponse({'sucesso': True, 'success': True, 'data': data, 'count': len(data)})
 
 @csrf_exempt
 def contas_api_save(request):
@@ -782,10 +782,10 @@ def contas_api_save(request):
                     status='ATIVO'
                 )
 
-            return JsonResponse({'success': True, 'message': 'Movimento de Conta salvo com sucesso!', 'id': movimento.id})
+            return JsonResponse({'sucesso': True, 'success': True, 'message': 'Movimento de Conta salvo com sucesso!', 'mensagem': 'Movimento de Conta salvo com sucesso!', 'id': movimento.id})
 
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        return JsonResponse({'sucesso': False, 'success': False, 'error': str(e), 'erro': str(e)}, status=500)
 
 @csrf_exempt
 def contas_api_delete(request, id):
@@ -793,7 +793,7 @@ def contas_api_delete(request, id):
         return JsonResponse({'error': 'Método deve ser POST'}, status=405)
     movimento = get_object_or_404(MovimentoContas, id=id)
     movimento.inativar()
-    return JsonResponse({'success': True, 'message': f'Movimento #{id} e suas parcelas foram inativados (Exclusão Lógica).'})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': f'Movimento #{id} e suas parcelas foram inativados (Exclusão Lógica).', 'mensagem': f'Movimento #{id} inativado.'})
 
 @csrf_exempt
 def contas_api_reativar(request, id):
@@ -801,7 +801,7 @@ def contas_api_reativar(request, id):
         return JsonResponse({'error': 'Método deve ser POST'}, status=405)
     movimento = get_object_or_404(MovimentoContas, id=id)
     movimento.reativar()
-    return JsonResponse({'success': True, 'message': f'Movimento #{id} reativado com sucesso.'})
+    return JsonResponse({'sucesso': True, 'success': True, 'message': f'Movimento #{id} reativado com sucesso.', 'mensagem': f'Movimento #{id} reativado.'})
 
 def auxiliares_api(request):
     pessoas = [{'id': p.id, 'nome': f"{p.razao_social} ({p.get_tipo_display()})", 'tipo': p.tipo} for p in Pessoa.objects.filter(status='ATIVO')]

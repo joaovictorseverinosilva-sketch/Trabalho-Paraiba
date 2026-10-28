@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NotaVision - Sistema Administrativo-Financeiro{% endblock %}</title>
+
+    <!-- Auth check guard -->
+    <script>
+        (function() {
+            var token = localStorage.getItem('AUTH_TOKEN');
+            var path = window.location.pathname.toLowerCase();
+            var isAuthPage = path.endsWith('/login.html') || path.endsWith('/login') || path === '/';
+            if (!token && !isAuthPage) {
+                window.location.replace('/login.html');
+            }
+        })();
+    </script>
+
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- NotaVision Clay Design System (espelhado do Farm-Fin) -->
+    <link rel="stylesheet" href="/static/css/farmfin_tokens.css">
+    <link rel="stylesheet" href="/static/css/farmfin_components.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-shell">
+        <!-- SIDEBAR DE NAVEGAÇÃO (100% Espelhada do Farm-Fin) -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand-wrapper">
+                <a href="/sistema/" class="sidebar-brand">
+                    <div class="sidebar-logo">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <div class="sidebar-brand-meta">
+                        <span class="sidebar-brand-name">NotaVision</span>
+                        <span class="sidebar-brand-sub">UniRV · N2</span>
+                    </div>
+                </a>
+                <button type="button" class="sidebar-close-btn" id="btnSidebarClose">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Context Badge (Ex.: Unidade / Fazenda Ativa) -->
+            <div class="sidebar-context-card">
+                <div class="sidebar-context-icon">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="sidebar-context-info">
+                    <span class="sidebar-context-label">Ambiente Acadêmico</span>
+                    <span class="sidebar-context-name">UniRV - Eng. Software</span>
+                </div>
+            </div>
+
+            <!-- Navegação por Seções -->
+            <nav class="sidebar-nav">
+                <!-- Seção Principal -->
+                <div class="nav-section-title">Principal</div>
+                <ul class="nav-item-list">
+                    <li>
+                        <a href="/sistema/" class="nav-link {% if active_page == 'sistema' %}active{% endif %}">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            <span>Dashboard & Extração</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Seção Atividades Acadêmicas (N2 - 1ª e 2ª Etapas) -->
+                <div class="nav-section-title">Atividades Acadêmicas (N2)</div>
+                <ul class="nav-item-list">
+                    <li>
+                        <a href="/sistema/" class="nav-link {% if active_page == 'extracao' %}active{% endif %}">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Processador de NF (IA)</span>
+                            <span class="nav-link-badge">IA</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/pessoas/" class="nav-link {% if active_page == 'pessoas' %}active{% endif %}">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Pessoas</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/classificacoes/" class="nav-link {% if active_page == 'classificacoes' %}active{% endif %}">
+                            <i class="fa-solid fa-tags"></i>
+                            <span>Classificações</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/contas/" class="nav-link {% if active_page == 'contas' %}active{% endif %}">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span>Registrar Contas</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Seção Financeiro & Gestão -->
+                <div class="nav-section-title">Módulos Financeiros</div>
+                <ul class="nav-item-list">
+                    <li>
+                        <a href="/contas/?tipo=APAGAR" class="nav-link">
+                            <i class="fa-solid fa-circle-arrow-down" style="color: var(--color-danger);"></i>
+                            <span>Contas a Pagar</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/contas/?tipo=RECEBER" class="nav-link">
+                            <i class="fa-solid fa-circle-arrow-up" style="color: var(--color-success);"></i>
+                            <span>Contas a Receber</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Rodapé da Sidebar: Usuário Ativo & Logout -->
+            <div class="sidebar-footer">
+                <div class="sidebar-user-pill">
+                    <div class="user-avatar-circle">
+                        NV
+                    </div>
+                    <div class="user-meta-text">
+                        <span class="user-name-text">admin@unirv.edu.br</span>
+                        <span class="user-role-text">Avaliador / Docente</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-icon-action btn-logout-trigger" title="Sair do Sistema">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- LAYOUT PRINCIPAL -->
+        <div class="app-main-layout">
+            <!-- HEADER SUPERIOR (TOPBAR) -->
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button type="button" class="topbar-menu-toggle" id="btnMobileMenu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="breadcrumbs">
+                        <span>NotaVision</span>
+                        <span class="breadcrumb-sep">/</span>
+                        <span>{% block breadcrumb_section %}Módulos N2{% endblock %}</span>
+                        <span class="breadcrumb-sep">/</span>
+                        <span class="breadcrumb-current">{% block breadcrumb_current %}Início{% endblock %}</span>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <!-- Git Commit Badge Oficial -->
+                    <a href="{{ git_info.repo_url }}/commit/{{ git_info.commit }}" target="_blank" rel="noopener noreferrer" class="git-topbar-badge" title="Ver commit da última atualização no GitHub">
+                        <span class="git-live-dot"></span>
+                        <i class="fa-brands fa-github"></i>
+                        <span>Git:</span>
+                        <code id="headerGitHash">{{ git_info.commit }}</code>
+                    </a>
+
+                    <!-- Botão de Configuração da API Gemini -->
+                    <button type="button" class="btn-icon-action" id="btnConfigModal" title="Configurar Chave da API Gemini">
+                        <i class="fa-solid fa-key"></i>
+                    </button>
+
+                    <!-- Botão de Modo Noturno / Claro -->
+                    <button type="button" class="btn-icon-action" id="btnThemeToggle" title="Alternar Modo Noturno">
+                        <i class="fa-solid fa-moon" id="themeIcon"></i>
+                    </button>
+
+                    <!-- Botão de Logout -->
+                    <button type="button" class="btn-icon-action btn-logout-trigger" title="Sair do Sistema">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- CORPO DO CONTEÚDO -->
+            <main class="app-content-body">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIGURAÇÃO DA CHAVE GEMINI AI -->
+    <div class="crud-modal-overlay hidden" id="modalConfigApi">
+        <div class="crud-modal-card" style="max-width: 500px;">
+            <div class="crud-modal-header">
+                <div class="crud-modal-title">
+                    <i class="fa-solid fa-key" style="color: var(--color-primary-600); margin-right: 8px;"></i>
+                    Configurar API Gemini AI
+                </div>
+                <button type="button" class="crud-modal-close" id="btnCloseApiModal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="crud-modal-body">
+                <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px;">
+                    O sistema utiliza o <strong>Google Gemini AI</strong> para processamento inteligente de DANFEs e documentos fiscais. 
+                    Caso deseje utilizar sua própria chave de API do Google AI Studio, informe-a abaixo.
+                </p>
+                <div class="clay-input-group">
+                    <label class="clay-label">Chave de API (Google AI Studio)</label>
+                    <input type="password" id="inputGeminiKey" class="clay-input" placeholder="AIzaSy..." autocomplete="off">
+                </div>
+                <div style="background: var(--color-primary-50); border: 1px solid var(--color-primary-200); border-radius: var(--radius-md); padding: 12px; font-size: 12.5px; color: var(--color-primary-800);">
+                    <i class="fa-solid fa-shield-halved" style="margin-right: 6px;"></i>
+                    <strong>Modo Demonstrativo Integrado:</strong> Mesmo sem preencher a chave, o sistema conta com contingência heurística completa que processa a nota do professor (DANFE 000.084.682 - Iguaçu Máquinas) e classifica perfeitamente.
+                </div>
+            </div>
+            <div class="crud-modal-footer">
+                <button type="button" class="clay-btn clay-btn-outline" id="btnRemoverKey">Limpar Chave</button>
+                <button type="button" class="clay-btn clay-btn-primary" id="btnSalvarKey">Salvar Chave</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts do AppShell -->
+    <script src="/static/js/app_shell.js"></script>
+    <script>
+        // Lógica do Modal de Configuração da API
+        (function() {
+            var modal = document.getElementById('modalConfigApi');
+            var btnOpen = document.getElementById('btnConfigModal');
+            var btnClose = document.getElementById('btnCloseApiModal');
+            var inputKey = document.getElementById('inputGeminiKey');
+            var btnSalvar = document.getElementById('btnSalvarKey');
+            var btnRemover = document.getElementById('btnRemoverKey');
+
+            if (btnOpen && modal) {
+                btnOpen.addEventListener('click', function() {
+                    inputKey.value = localStorage.getItem('GEMINI_API_KEY') || '';
+                    modal.classList.remove('hidden');
+                });
+            }
+
+            if (btnClose && modal) {
+                btnClose.addEventListener('click', function() {
+                    modal.classList.add('hidden');
+                });
+            }
+
+            if (btnSalvar) {
+                btnSalvar.addEventListener('click', function() {
+                    var val = inputKey.value.trim();
+                    if (val) {
+                        localStorage.setItem('GEMINI_API_KEY', val);
+                        window.showToast('success', 'API Gemini', 'Chave salva com sucesso!');
+                    }
+                    modal.classList.add('hidden');
+                });
+            }
+
+            if (btnRemover) {
+                btnRemover.addEventListener('click', function() {
+                    localStorage.removeItem('GEMINI_API_KEY');
+                    inputKey.value = '';
+                    window.showToast('info', 'API Gemini', 'Chave removida. Usando modo de contingência.');
+                    modal.classList.add('hidden');
+                });
+            }
+        })();
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
