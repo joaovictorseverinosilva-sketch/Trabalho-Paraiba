@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entrar • NotaVision N2</title>
+    <title>Entrar • NotaVision</title>
 
     <!-- Google Fonts: Inter & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -405,62 +405,6 @@
             color: var(--text-muted);
         }
 
-        /* Helper de Credenciais da Avaliação */
-        .login-n2-quick-fill {
-            background: var(--color-primary-50);
-            border: 1px dashed var(--color-primary-300);
-            border-radius: var(--radius-md);
-            padding: 12px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        [data-theme="dark"] .login-n2-quick-fill {
-            background: rgba(49, 46, 129, 0.25);
-            border-color: rgba(99, 102, 241, 0.4);
-        }
-
-        .quick-fill-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .quick-fill-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--color-primary-700);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .quick-fill-creds {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .btn-quick-fill {
-            background: var(--color-primary-600);
-            color: #ffffff;
-            border: none;
-            padding: 6px 12px;
-            border-radius: var(--radius-sm);
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-            white-space: nowrap;
-        }
-
-        .btn-quick-fill:hover {
-            background: var(--color-primary-700);
-            transform: translateY(-1px);
-        }
-
         /* Formulário */
         .login-form {
             display: flex;
@@ -597,7 +541,7 @@
                 </li>
                 <li class="login-highlight-item">
                     <span class="login-highlight-icon"><i class="fa-solid fa-check"></i></span>
-                    <span>Validação em tempo real, soft delete e total conformidade com a Avaliação N2</span>
+                    <span>Validação em tempo real, exclusão lógica (soft delete) e alta rastreabilidade</span>
                 </li>
             </ul>
         </div>
@@ -610,28 +554,19 @@
                     <p class="login-card-subtitle">Use seu e-mail ou usuário e a senha da sua conta.</p>
                 </div>
 
-                <!-- Credenciais N2 para o Avaliador / Docente -->
-                <div class="login-n2-quick-fill">
-                    <div class="quick-fill-info">
-                        <span class="quick-fill-label"><i class="fa-solid fa-key"></i> Acesso da Avaliação N2</span>
-                        <span class="quick-fill-creds">admin@unirv.edu.br</span>
-                    </div>
-                    <button type="button" class="btn-quick-fill" id="btnQuickFill">Preencher</button>
-                </div>
-
                 <form id="loginForm" class="login-form">
                     <div class="clay-input-group" style="margin-bottom: 0;">
                         <label class="clay-label">E-mail ou Usuário</label>
                         <div class="clay-input-icon-wrap">
                             <i class="fa-regular fa-envelope"></i>
-                            <input type="text" id="username" class="clay-input" placeholder="admin@unirv.edu.br ou admin" required autocomplete="username">
+                            <input type="text" id="username" class="clay-input" placeholder="E-mail ou usuário" required autocomplete="username">
                         </div>
                     </div>
 
                     <div class="clay-input-group" style="margin-bottom: 0;">
                         <label class="clay-label">Senha</label>
                         <div class="password-input-wrapper">
-                            <input type="password" id="password" class="clay-input" placeholder="••••••••" required autocomplete="current-password" style="padding-right: 40px;">
+                            <input type="password" id="password" class="clay-input" placeholder="Senha da sua conta" required autocomplete="current-password" style="padding-right: 40px;">
                             <button type="button" class="btn-toggle-eye" id="btnTogglePassword" title="Exibir/Ocultar Senha">
                                 <i class="fa-regular fa-eye" id="eyeIcon"></i>
                             </button>
@@ -665,7 +600,7 @@
             {{ git_info.commit }}
         </a>
         <span>·</span>
-        <span>Avaliação N2 - UniRV</span>
+        <span>NotaVision Enterprise</span>
     </footer>
 
     <!-- Scripts de Login -->
@@ -674,20 +609,10 @@
             var form = document.getElementById('loginForm');
             var userInput = document.getElementById('username');
             var passInput = document.getElementById('password');
-            var btnQuick = document.getElementById('btnQuickFill');
             var btnToggle = document.getElementById('btnTogglePassword');
             var eyeIcon = document.getElementById('eyeIcon');
             var errorAlert = document.getElementById('loginErrorAlert');
             var errorText = document.getElementById('loginErrorText');
-
-            // Quick Fill
-            if (btnQuick) {
-                btnQuick.addEventListener('click', function() {
-                    userInput.value = 'admin@unirv.edu.br';
-                    passInput.value = 'admin@unirv.edu.br';
-                    userInput.focus();
-                });
-            }
 
             // Eye Toggle
             if (btnToggle) {
@@ -757,14 +682,14 @@
                             localStorage.setItem('AUTH_TOKEN', fakeToken);
                             localStorage.setItem('AUTH_USER', JSON.stringify({
                                 username: u,
-                                email: 'admin@unirv.edu.br',
-                                role: 'Docente / Avaliador N2'
+                                email: u.includes('@') ? u : 'admin@notavision.com',
+                                role: 'Administrador'
                             }));
                             window.location.href = '/sistema/';
                         } else {
                             btn.innerHTML = origHtml;
                             btn.disabled = false;
-                            errorText.textContent = 'Credenciais incorretas! Use o login oficial: admin@unirv.edu.br';
+                            errorText.textContent = 'Credenciais incorretas! Verifique o e-mail/usuário e a senha informada.';
                             errorAlert.style.display = 'block';
                         }
                     }
